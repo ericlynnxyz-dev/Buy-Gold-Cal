@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign In · Buy Gold Cal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Myanmar:wght@400;500;600;700;800&family=Padauk:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="auth.css" />
+</head>
+<body class="theme-light">
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('goldCalcTheme');
+      if (savedTheme === 'dark') document.body.className = 'theme-dark';
+    } catch (e) {}
+  </script>
+
+  <div class="bg-animate">
+    <span class="orb orb1"></span>
+    <span class="orb orb2"></span>
+    <span class="orb orb3"></span>
+  </div>
+
+  <main class="auth-page">
+    <div class="menu-row">
+      <button class="hero-icon-btn" id="optionsToggle" type="button" aria-label="Menu" data-i18n-aria="ariaMenu">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="17" x2="18" y2="17"/></svg>
+      </button>
+    </div>
+    <header class="page-header">
+      <a href="index.html" class="hero-icon-btn" aria-label="Back to calculator" data-i18n-aria="ariaBack">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </a>
+      <div class="page-title" data-i18n="signIn">Sign In</div>
+      <div class="hero-spacer"></div>
+    </header>
+
+    <section class="auth-card">
+      <h2 data-i18n="welcome">Welcome</h2>
+      <p data-i18n="signinIntro">Sign in to save your calculation history across devices.</p>
+
+      <div id="errorMsg" class="auth-msg error" hidden></div>
+      <div id="infoMsg"  class="auth-msg info"  hidden></div>
+
+      <!-- GOOGLE -->
+      <button id="googleBtn" class="google-btn" type="button">
+        <svg viewBox="0 0 18 18">
+          <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.12-.84 2.07-1.79 2.7v2.25h2.9c1.7-1.57 2.69-3.88 2.69-6.59z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.25c-.81.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.32A9 9 0 0 0 9 18z"/>
+          <path fill="#FBBC05" d="M3.95 10.71A5.41 5.41 0 0 1 3.66 9c0-.59.1-1.17.29-1.71V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.03l2.99-2.32z"/>
+          <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97L3.95 7.29C4.66 5.16 6.65 3.58 9 3.58z"/>
+        </svg>
+        <span data-i18n="continueGoogle">Continue with Google</span>
+      </button>
+
+      <div class="auth-divider" data-i18n="orDivider">or</div>
+
+      <!-- EMAIL / PASSWORD -->
+      <form id="emailForm" autocomplete="on">
+        <div class="auth-field" style="margin-bottom:10px;">
+          <label for="emailInput" data-i18n="emailLabel">Email</label>
+          <input id="emailInput" type="email" autocomplete="email" placeholder="you@example.com" data-i18n-ph="emailPlaceholder" required />
+        </div>
+        <div class="auth-field" style="margin-bottom:14px;">
+          <label for="passwordInput" data-i18n="passwordLabel">Password</label>
+          <input id="passwordInput" type="password" autocomplete="current-password" placeholder="At least 6 characters" data-i18n-ph="passwordPlaceholder" minlength="6" required />
+        </div>
+        <button id="emailSubmit" type="submit" class="primary-btn"><span id="emailSubmitText">Sign In</span></button>
+      </form>
+      <button id="toggleMode" class="toggle-link" type="button">No account? Create one</button>
+
+      <div class="auth-divider" data-i18n="orDivider">or</div>
+
+      <!-- PHONE / OTP -->
+      <div id="phoneStep1">
+        <div class="auth-field" style="margin-bottom:10px;">
+          <label for="phoneInput" data-i18n="phoneLabel">Phone number</label>
+          <input id="phoneInput" type="tel" autocomplete="tel" placeholder="+95 9 1234 5678" />
+        </div>
+        <button id="sendOtpBtn" type="button" class="primary-btn" data-i18n="sendCode">Send Verification Code</button>
+      </div>
+      <div id="phoneStep2" hidden>
+        <div class="auth-field" style="margin-bottom:10px;">
+          <label for="otpInput" data-i18n="otpLabel">Verification code</label>
+          <input id="otpInput" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" data-i18n-ph="otpPlaceholder" />
+        </div>
+        <button id="verifyOtpBtn" type="button" class="primary-btn" data-i18n="verifySignIn">Verify &amp; Sign In</button>
+        <button id="resendOtpBtn" type="button" class="toggle-link" style="margin-top:8px;" data-i18n="useDifferent">Use a different number</button>
+      </div>
+
+      <!-- Invisible reCAPTCHA container (required by Firebase Phone Auth) -->
+      <div id="recaptcha-container"></div>
+    </section>
+
+    <div class="bottom-link">
+      <a href="index.html" data-i18n="skipContinue">Skip and continue without signing in</a>
+    </div>
+  </main>
+
+  <!-- Options menu -->
+  <div id="optionsMenu" class="opt-modal hidden">
+    <div class="opt-backdrop" id="optBackdrop"></div>
+    <div class="opt-card">
+      <button class="opt-item" id="optEditPrice" type="button" data-i18n="optEditPrice">Edit Gold Price</button>
+      <button class="opt-item" id="optHistory" type="button" data-i18n="optHistory">My History</button>
+      <button class="opt-item" id="optEditInfo" type="button" data-i18n="optEditInfo">Edit My Info</button>
+      <button class="opt-item" id="optCompare" type="button" data-i18n="optCompare">Compare Mode</button>
+      <div class="opt-lang">
+        <button class="opt-lang-btn" data-lang="en">ENG</button>
+        <button class="opt-lang-btn" data-lang="mm">မြန်မာ</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module">
+    import {
+      signInWithGoogle, signInWithEmail, createAccount,
+      makeRecaptcha, sendPhoneOTP, savePendingCalculationIfAny, applySavedTheme
+    } from './auth-utils.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { auth } from './firebase-config.js';
+    import { tr, getLang, setLang, applyLangClass, translateStatic } from './i18n.js';
+
+    // Theme already applied via inline script
+    if (!document.body.classList.length) applySavedTheme();
+
+    const errorMsg = document.getElementById('errorMsg');
+    const infoMsg  = document.getElementById('infoMsg');
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.hidden = false;
+      infoMsg.hidden = true;
+    }
+    function showInfo(msg) {
+      infoMsg.textContent = msg;
+      infoMsg.hidden = false;
+      errorMsg.hidden = true;
+    }
+    function hideMsgs() {
+      errorMsg.hidden = true;
+      infoMsg.hidden = true;
+    }
+
+    function prettyError(e) {
+      const code = (e && e.code) || '';
+      const map = {
+        'auth/invalid-email':            'errInvalidEmail',
+        'auth/user-not-found':           'errUserNotFound',
+        'auth/wrong-password':           'errWrongPassword',
+        'auth/invalid-credential':       'errInvalidCredential',
+        'auth/email-already-in-use':     'errEmailInUse',
+        'auth/weak-password':            'errWeakPassword',
+        'auth/popup-closed-by-user':     'errPopupClosed',
+        'auth/network-request-failed':   'errNetwork',
+        'auth/invalid-phone-number':     'errInvalidPhone',
+        'auth/invalid-verification-code':'errInvalidCode',
+        'auth/code-expired':             'errCodeExpired',
+        'auth/too-many-requests':        'errTooManyRequests'
+      };
+      return map[code] ? tr(map[code]) : ((e && e.message) || tr('errGeneric'));
+    }
+
+    // After any successful sign-in: save pending if any, then redirect.
+    async function postSignIn() {
+      try {
+        const saved = await savePendingCalculationIfAny();
+        window.location.href = saved ? 'history.html' : 'index.html';
+      } catch (e) {
+        // Even if pending save fails, still proceed
+        window.location.href = 'index.html';
+      }
+    }
+
+    // If already signed in, redirect away from this page.
+    onAuthStateChanged(auth, (user) => {
+      if (user) postSignIn();
+    });
+
+    // ---- Google sign-in ----
+    document.getElementById('googleBtn').addEventListener('click', async () => {
+      hideMsgs();
+      try { await signInWithGoogle(); }
+      catch (e) { showError(prettyError(e)); }
+    });
+
+    // ---- Email / password (with create-account toggle) ----
+    let createMode = false;
+    const emailSubmitText = document.getElementById('emailSubmitText');
+    const toggleModeBtn   = document.getElementById('toggleMode');
+    function refreshAuthTexts() {
+      emailSubmitText.textContent = createMode ? tr('createAccount') : tr('signIn');
+      toggleModeBtn.textContent   = createMode ? tr('haveAccount') : tr('noAccount');
+    }
+    toggleModeBtn.addEventListener('click', () => {
+      createMode = !createMode;
+      refreshAuthTexts();
+      hideMsgs();
+    });
+
+    document.getElementById('emailForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideMsgs();
+      const email = document.getElementById('emailInput').value.trim();
+      const pw    = document.getElementById('passwordInput').value;
+      try {
+        if (createMode) await createAccount(email, pw);
+        else            await signInWithEmail(email, pw);
+      } catch (err) { showError(prettyError(err)); }
+    });
+
+    // ---- Phone / OTP ----
+    let recaptcha = null;
+    let confirmationResult = null;
+
+    document.getElementById('sendOtpBtn').addEventListener('click', async () => {
+      hideMsgs();
+      const phone = document.getElementById('phoneInput').value.trim();
+      if (!phone) return showError(tr('enterPhone'));
+      try {
+        if (!recaptcha) recaptcha = makeRecaptcha('recaptcha-container');
+        confirmationResult = await sendPhoneOTP(phone, recaptcha);
+        document.getElementById('phoneStep1').hidden = true;
+        document.getElementById('phoneStep2').hidden = false;
+        showInfo(tr('codeSent'));
+      } catch (err) {
+        showError(prettyError(err));
+        try { recaptcha && recaptcha.clear(); } catch (e) {}
+        recaptcha = null;
+      }
+    });
+
+    document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
+      hideMsgs();
+      const code = document.getElementById('otpInput').value.trim();
+      if (!code) return showError(tr('enterOtp'));
+      try { await confirmationResult.confirm(code); }
+      catch (err) { showError(prettyError(err)); }
+    });
+
+    document.getElementById('resendOtpBtn').addEventListener('click', () => {
+      document.getElementById('phoneStep1').hidden = false;
+      document.getElementById('phoneStep2').hidden = true;
+      document.getElementById('otpInput').value = '';
+      try { recaptcha && recaptcha.clear(); } catch (e) {}
+      recaptcha = null;
+      confirmationResult = null;
+      hideMsgs();
+    });
+
+    // ---------- Options menu + language ----------
+    const optionsMenu = document.getElementById('optionsMenu');
+    function closeOptions() { optionsMenu.classList.add('hidden'); }
+    document.getElementById('optionsToggle').addEventListener('click', () => optionsMenu.classList.remove('hidden'));
+    document.getElementById('optBackdrop').addEventListener('click', closeOptions);
+    document.getElementById('optEditPrice').addEventListener('click', () => { window.location.href = 'index.html#pricing'; });
+    document.getElementById('optHistory').addEventListener('click', () => { window.location.href = 'profile.html'; });
+    document.getElementById('optEditInfo').addEventListener('click', () => { window.location.href = 'profile.html#edit'; });
+    document.getElementById('optCompare').addEventListener('click', () => { window.location.href = 'compare.html'; });
+    function markLang(l) { document.querySelectorAll('.opt-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l)); }
+    function applyPageLang(l) { setLang(l); applyLangClass(l); translateStatic(l); markLang(l); refreshAuthTexts(); }
+    document.querySelectorAll('.opt-lang-btn').forEach(b => {
+      b.addEventListener('click', (e) => { e.stopPropagation(); applyPageLang(b.dataset.lang); });
+    });
+
+    // initial language
+    applyLangClass(getLang());
+    translateStatic(getLang());
+    markLang(getLang());
+    refreshAuthTexts();
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Local Claude Code settings (machine-specific, not shared)
+.claude/settings.local.json
+
+# OS / editor cruft
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# Local backups
+*.backup-*/
+*.bak

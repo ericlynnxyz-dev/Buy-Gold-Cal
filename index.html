@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gold Price Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Myanmar:wght@400;500;600;700;800&family=Padauk:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="theme-light">
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('goldCalcTheme');
+      if (savedTheme === 'dark') document.body.className = 'theme-dark';
+    } catch (e) {}
+  </script>
+
+  <!-- LOADING SCREEN -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loading-content">
+      <div class="loading-brand-group">
+        <h1 class="loading-brand">Buy Gold Cal</h1>
+        <p class="loading-tagline">Purchase Calculator</p>
+      </div>
+      <div class="loading-bar-track">
+        <div class="loading-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-animate">
+    <span class="orb orb1"></span>
+    <span class="orb orb2"></span>
+    <span class="orb orb3"></span>
+  </div>
+
+  <!-- Top navigation -->
+  <nav class="top-nav" aria-label="Account navigation">
+    <div class="top-nav-inner">
+      <div class="top-nav-brand">Buy Gold Cal</div>
+      <div class="top-nav-right">
+        <a href="history.html" class="top-nav-link" aria-label="History">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+        </a>
+        <a href="signin.html" id="topNavAuth" class="top-nav-auth" aria-label="Sign in">
+          <span class="top-nav-auth-text">Sign In</span>
+          <span id="topNavAvatar" class="top-nav-avatar" hidden>U</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Toast container -->
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- MAIN VIEW -->
+  <main id="mainView" class="view">
+    <section class="hero">
+      <div class="hero-bar">
+        <button id="optionsToggle" class="hero-icon-btn" aria-label="Menu" data-i18n-aria="ariaMenu">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="17" x2="18" y2="17"/></svg>
+        </button>
+        <button id="themeToggle" class="hero-icon-btn" title="Toggle theme" aria-label="Toggle theme" data-i18n-aria="ariaToggleTheme">
+          <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"/><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"/><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"/></svg>
+        </button>
+      </div>
+
+      <div class="hero-content">
+        <div class="hero-label" data-i18n="currentGoldPrice">CURRENT GOLD PRICE</div>
+        <div class="hero-price"><span id="priceValue" class="digital">0</span> <span id="priceMmk" data-i18n="mmk">MMK</span></div>
+      </div>
+    </section>
+
+    <section class="card inputs-card">
+      <div class="pill-row">
+        <div class="gold-pill" id="purityPill">
+          <button class="gold-pill-toggle" id="purityToggle" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="gold-pill-label" id="purityLabel" data-i18n="goldPurity">Gold Purity</span>
+            <span class="pill-chev-circle">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </button>
+          <div class="gold-pill-options" role="listbox">
+            <button class="gold-pill-option" data-value="0" type="button" role="option" data-i18n="quality16">16K</button>
+            <button class="gold-pill-option" data-value="1" type="button" role="option" data-i18n="quality15">15K</button>
+            <button class="gold-pill-option" data-value="2" type="button" role="option" data-i18n="quality145">14.5K</button>
+            <button class="gold-pill-option" data-value="3" type="button" role="option" data-i18n="quality14">14K</button>
+            <button class="gold-pill-option" data-value="4" type="button" role="option" data-i18n="quality12">12K</button>
+          </div>
+        </div>
+
+        <div class="gold-pill" id="itemTypePill">
+          <button class="gold-pill-toggle" id="itemTypeToggle" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="gold-pill-label" id="itemTypeLabel" data-i18n="itemTypePlaceholder">Item Type</span>
+            <span class="pill-chev-circle">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </button>
+          <div class="gold-pill-options" role="listbox">
+            <button class="gold-pill-option" data-value="gold" type="button" role="option" data-i18n="typeGold">Gold</button>
+            <button class="gold-pill-option" data-value="gold-gem" type="button" role="option" data-i18n="typeGoldGem">Gold + Gem</button>
+            <button class="gold-pill-option" data-value="gold-diamond" type="button" role="option" data-i18n="typeGoldDiamond">Gold + Diamond</button>
+          </div>
+        </div>
+      </div>
+      <select id="itemType" hidden>
+        <option value="" selected></option>
+        <option value="gold">Gold</option>
+        <option value="gold-gem">Gold + Gem</option>
+        <option value="gold-diamond">Gold + Diamond</option>
+      </select>
+
+      <div class="field weight-field">
+        <label data-i18n="itemWeight">Item Weight</label>
+        <div class="weight-row">
+          <div class="weight-col">
+            <span class="unit-label" data-i18n="unitK">K</span>
+            <input type="text" inputmode="decimal" id="iwK" class="weight-input" />
+          </div>
+          <div class="weight-col">
+            <span class="unit-label" data-i18n="unitP">P</span>
+            <input type="text" inputmode="decimal" id="iwP" class="weight-input" />
+          </div>
+          <div class="weight-col">
+            <span class="unit-label" data-i18n="unitY">Y</span>
+            <input type="text" inputmode="decimal" id="iwY" class="weight-input" />
+          </div>
+        </div>
+      </div>
+
+      <div class="field weight-field">
+        <label data-i18n="lossWeight">Loss Weight</label>
+        <div class="weight-row">
+          <div class="weight-col">
+            <span class="unit-label" data-i18n="unitK">K</span>
+            <input type="text" inputmode="decimal" id="lwK" class="weight-input" />
+          </div>
+          <div class="weight-col">
+            <span class="unit-label" data-i18n="unitP">P</span>
+            <input type="text" inputmode="decimal" id="lwP" class="weight-input" />
+          </div>
+          <div class="weight-col">
+            <span class="unit-label" data-i18n="unitY">Y</span>
+            <input type="text" inputmode="decimal" id="lwY" class="weight-input" />
+          </div>
+        </div>
+      </div>
+
+      <div class="field weight-field" id="costModeRow" hidden>
+        <label id="costModeLabel">Gem Cost</label>
+        <div class="cost-mode-toggle" role="group" aria-label="Cost mode">
+          <button type="button" id="modeCalculate" class="cost-mode-btn active" data-mode="calculate" data-i18n="modeCalculate">Calculate</button>
+          <button type="button" id="modeFixed" class="cost-mode-btn" data-mode="fixed" data-i18n="modeFixed">Fixed</button>
+        </div>
+      </div>
+
+      <div class="field weight-field" id="gemRow" hidden>
+        <label data-i18n="gemWeight">Gem Weight</label>
+        <div class="weight-row">
+          <div class="weight-col">
+            <span class="unit-label" data-i18n="unitK">K</span>
+            <input type="text" inputmode="decimal" id="gwK" class="weight-input" />
+          </div>
+          <div class="weight-col">
+            <span class="unit-label" data-i18n="unitP">P</span>
+            <input type="text" inputmode="decimal" id="gwP" class="weight-input" />
+          </div>
+          <div class="weight-col">
+            <span class="unit-label" data-i18n="unitY">Y</span>
+            <input type="text" inputmode="decimal" id="gwY" class="weight-input" />
+          </div>
+        </div>
+      </div>
+
+      <div class="field field-horizontal" id="gemCostRow" hidden>
+        <label for="gemCostInput" data-i18n="gemCost">Gem Cost</label>
+        <div class="single-input">
+          <input type="text" inputmode="numeric" id="gemCostInput" placeholder="0" />
+        </div>
+      </div>
+
+      <div class="field field-horizontal" id="diamondRow" hidden>
+        <label for="diamondWeight" data-i18n="diamondWeight">Diamond Weight</label>
+        <div class="single-input">
+          <input type="text" inputmode="decimal" id="diamondWeight" placeholder="0" />
+        </div>
+      </div>
+
+      <div class="field field-horizontal" id="diamondPriceRow" hidden>
+        <label for="diamondPrice" data-i18n="diamondPrice">Diamond Price</label>
+        <div class="single-input">
+          <input type="text" inputmode="numeric" id="diamondPrice" placeholder="0" />
+        </div>
+      </div>
+
+      <div class="field field-horizontal" id="diamondCostRow" hidden>
+        <label for="diamondCostInput" data-i18n="diamondCost">Diamond Cost</label>
+        <div class="single-input">
+          <input type="text" inputmode="numeric" id="diamondCostInput" placeholder="0" />
+        </div>
+      </div>
+
+      <div class="field field-horizontal">
+        <label for="craftingFee" data-i18n="craftingFee">Crafting Fee</label>
+        <div class="single-input">
+          <input type="text" inputmode="numeric" id="craftingFee" placeholder="0" />
+        </div>
+      </div>
+
+      <div class="clear-row">
+        <button id="clearBtn" class="clear-icon-btn" type="button" aria-label="Clear" data-i18n-aria="clear">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="card item-name-card">
+      <div class="item-type-wrap">
+        <div class="gold-pill" id="itemNamePill">
+          <button class="gold-pill-toggle" id="itemNameToggle" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="gold-pill-label" id="itemNameLabel">ITEM NAME</span>
+            <span class="pill-chev-circle">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </button>
+          <div class="gold-pill-options" role="listbox">
+            <button class="gold-pill-option" data-value="ring" type="button" role="option" data-i18n="itemRing">Ring</button>
+            <button class="gold-pill-option" data-value="bracelet" type="button" role="option" data-i18n="itemBracelet">Bracelet</button>
+            <button class="gold-pill-option" data-value="earrings" type="button" role="option" data-i18n="itemEarrings">Earrings</button>
+            <button class="gold-pill-option" data-value="pendant" type="button" role="option" data-i18n="itemPendant">Pendant</button>
+            <button class="gold-pill-option" data-value="necklace" type="button" role="option" data-i18n="itemNecklace">Necklace</button>
+            <button class="gold-pill-option" data-value="handchain" type="button" role="option" data-i18n="itemHandChain">Hand chain</button>
+            <button class="gold-pill-option" data-value="footchain" type="button" role="option" data-i18n="itemFootChain">Foot chain</button>
+            <button class="gold-pill-option" data-value="hairclipper" type="button" role="option" data-i18n="itemHairClipper">Hair clipper</button>
+            <button class="gold-pill-option" data-value="other" type="button" role="option" data-i18n="itemOther">Other</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field field-horizontal" id="specificItemRow" hidden>
+        <label for="specificItem" data-i18n="specificItem">Specific Item</label>
+        <div class="single-input">
+          <input type="text" id="specificItem" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card result-card">
+      <div class="result-label" data-i18n="itemCost">Item Cost</div>
+      <div class="result-value" id="resultValue">0 MMK</div>
+
+      <div class="warn-msg" id="overWeightMsg" data-i18n="overWeightWarn" hidden>Stone weight is more than the item weight — check the weights.</div>
+
+      <div class="summary" id="summary"></div>
+
+      <button id="saveBtn" class="primary-btn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span data-i18n="saveInvoice">Save Invoice</span>
+      </button>
+    </section>
+
+  </main>
+
+  <!-- PRICING VIEW -->
+  <section id="pricingView" class="view hidden">
+    <header class="hero pricing-hero">
+      <div class="hero-bar">
+        <button id="backFromPricing" class="hero-icon-btn" aria-label="Back" data-i18n-aria="ariaBack">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="pricing-title" data-i18n="pricingTitle">Pricing</div>
+        <div class="hero-spacer"></div>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="field field-horizontal">
+        <label for="goldPriceInput" data-i18n="pricingGoldLabel">Gold Price · 16K</label>
+        <div class="single-input">
+          <input type="text" inputmode="numeric" id="goldPriceInput" placeholder="0" />
+        </div>
+      </div>
+
+      <div class="auto-prices">
+        <div class="auto-row"><span data-i18n="quality15">15K</span><strong id="p15">0</strong></div>
+        <div class="auto-row"><span data-i18n="quality145">14.5K</span><strong id="p145">0</strong></div>
+        <div class="auto-row"><span data-i18n="quality14">14K</span><strong id="p14">0</strong></div>
+        <div class="auto-row"><span data-i18n="quality12">12K</span><strong id="p12">0</strong></div>
+      </div>
+
+      <div class="field field-horizontal">
+        <label for="gemPriceInput" data-i18n="pricingGemLabel">Gem Price (per Yt)</label>
+        <div class="single-input">
+          <input type="text" inputmode="numeric" id="gemPriceInput" placeholder="0" />
+        </div>
+      </div>
+
+      <button id="savePricing" class="primary-btn" data-i18n="saveBack">Save &amp; Back</button>
+    </section>
+  </section>
+
+  <!-- INVOICE MODAL -->
+  <div id="invoiceModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <button id="closeInvoice" class="modal-close-x" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+      </button>
+      <div id="invoiceCanvas" class="invoice">
+        <div class="invoice-head">
+          <div class="invoice-brand">
+            <h1 class="invoice-brand-title">Buy Gold Cal</h1>
+            <span class="invoice-brand-sub" data-i18n="purchaseReceipt">PURCHASE RECEIPT</span>
+          </div>
+          <div class="invoice-meta">
+            <div class="invoice-date" id="invDate"></div>
+            <div class="invoice-number" id="invNumber"></div>
+          </div>
+        </div>
+
+        <div class="invoice-body" id="invoiceBody"></div>
+
+        <div class="invoice-total-card">
+          <span class="invoice-total-label" data-i18n="totalItemCost">TOTAL ITEM COST</span>
+          <strong class="invoice-total-value" id="invTotal">0 MMK</strong>
+        </div>
+
+        <div class="invoice-footer">Generated by Buy Gold Cal</div>
+      </div>
+      <div class="modal-actions">
+        <button id="downloadInvoice" class="primary-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-i18n="saveJpeg">Save Image</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Options menu -->
+  <div id="optionsMenu" class="opt-modal hidden">
+    <div class="opt-backdrop" id="optBackdrop"></div>
+    <div class="opt-card">
+      <button class="opt-item" id="optEditPrice" type="button" data-i18n="optEditPrice">Edit Gold Price</button>
+      <button class="opt-item" id="optHistory" type="button" data-i18n="optHistory">My History</button>
+      <button class="opt-item" id="optEditInfo" type="button" data-i18n="optEditInfo">Edit My Info</button>
+      <button class="opt-item" id="optCompare" type="button" data-i18n="optCompare">Compare Mode</button>
+      <div class="opt-lang">
+        <button class="opt-lang-btn" data-lang="en">ENG</button>
+        <button class="opt-lang-btn" data-lang="mm">မြန်မာ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reminder popup -->
+  <div id="reminderPop" class="reminder-pop" hidden></div>
+
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-item" id="navPricing" aria-label="Pricing" data-i18n-aria="ariaPricing">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.3c-.4-.8-1.4-1.3-2.8-1.3-1.7 0-2.8.8-2.8 2 0 2.8 5.8 1.2 5.8 4 0 1.2-1.1 2-2.8 2-1.5 0-2.5-.5-2.9-1.4"/><path d="M12 6.3v11.4"/></svg>
+    </button>
+    <button class="nav-item active" id="navHome" aria-label="Calculator" data-i18n-aria="ariaCalculator">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2V9.5z"/></svg>
+    </button>
+    <button class="nav-item" id="navCompare" aria-label="Compare">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 2 21 6 17 10"/><line x1="3" y1="6" x2="21" y2="6"/><polyline points="7 14 3 18 7 22"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+    </button>
+    <button class="nav-item" id="navProfile" aria-label="Profile">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+  </nav>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="auth-utils.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

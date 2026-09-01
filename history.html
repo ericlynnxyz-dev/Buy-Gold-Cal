@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>History · Buy Gold Cal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Myanmar:wght@400;500;600;700;800&family=Padauk:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="auth.css" />
+</head>
+<body class="theme-light">
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('goldCalcTheme');
+      if (savedTheme === 'dark') document.body.className = 'theme-dark';
+    } catch (e) {}
+  </script>
+
+  <div class="bg-animate">
+    <span class="orb orb1"></span>
+    <span class="orb orb2"></span>
+    <span class="orb orb3"></span>
+  </div>
+
+  <main class="auth-page">
+    <div class="menu-row">
+      <button class="hero-icon-btn" id="optionsToggle" type="button" aria-label="Menu" data-i18n-aria="ariaMenu">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="17" x2="18" y2="17"/></svg>
+      </button>
+    </div>
+    <header class="page-header">
+      <a href="index.html" class="hero-icon-btn" aria-label="Back to calculator" data-i18n-aria="ariaBack">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </a>
+      <div class="page-title" data-i18n="historyHeading">History</div>
+      <a href="profile.html" class="hero-icon-btn" aria-label="Profile">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </a>
+    </header>
+
+    <!-- Loading state -->
+    <section id="loadingState" class="auth-card" style="text-align:center;">
+      <p>Loading…</p>
+    </section>
+
+    <!-- Not signed in -->
+    <section id="notSignedIn" class="auth-card" hidden>
+      <h2 data-i18n="signInHistory">Sign in to see your history</h2>
+      <p data-i18n="signInHistoryDesc">Your saved calculations are tied to your account. Sign in to view, compare, and manage them.</p>
+      <a href="signin.html" class="primary-btn" style="text-decoration:none;" data-i18n="signIn">Sign In</a>
+    </section>
+
+    <!-- Signed in: history list -->
+    <section id="historyContainer" hidden>
+      <div class="history-actions-bar">
+        <div class="history-count" id="historyCount"></div>
+      </div>
+      <div id="historyList" class="history-list"></div>
+
+      <div id="historyEmpty" class="history-empty" hidden>
+        <h3 data-i18n="emptyTitle">No saved calculations yet</h3>
+        <p data-i18n="emptyDesc">Calculations you save will appear here.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Options menu -->
+  <div id="optionsMenu" class="opt-modal hidden">
+    <div class="opt-backdrop" id="optBackdrop"></div>
+    <div class="opt-card">
+      <button class="opt-item" id="optEditPrice" type="button" data-i18n="optEditPrice">Edit Gold Price</button>
+      <button class="opt-item" id="optHistory" type="button" data-i18n="optHistory">My History</button>
+      <button class="opt-item" id="optEditInfo" type="button" data-i18n="optEditInfo">Edit My Info</button>
+      <button class="opt-item" id="optCompare" type="button" data-i18n="optCompare">Compare Mode</button>
+      <div class="opt-lang">
+        <button class="opt-lang-btn" data-lang="en">ENG</button>
+        <button class="opt-lang-btn" data-lang="mm">မြန်မာ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav (same on every page) -->
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-item" id="navPricing" type="button" aria-label="Pricing">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.3c-.4-.8-1.4-1.3-2.8-1.3-1.7 0-2.8.8-2.8 2 0 2.8 5.8 1.2 5.8 4 0 1.2-1.1 2-2.8 2-1.5 0-2.5-.5-2.9-1.4"/><path d="M12 6.3v11.4"/></svg>
+    </button>
+    <button class="nav-item" id="navHome" type="button" aria-label="Calculator">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2V9.5z"/></svg>
+    </button>
+    <button class="nav-item" id="navCompare" type="button" aria-label="Compare">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 2 21 6 17 10"/><line x1="3" y1="6" x2="21" y2="6"/><polyline points="7 14 3 18 7 22"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+    </button>
+    <button class="nav-item active" id="navProfile" type="button" aria-label="Profile" aria-current="page">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+  </nav>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module">
+    import { onAuthStateChange, getCalculations, deleteCalculation } from './auth-utils.js';
+    import { tr, getLang, setLang, applyLangClass, translateStatic, TYPE_KEY, ITEM_KEY, PURITY_KEY } from './i18n.js';
+
+    const loadingState  = document.getElementById('loadingState');
+    const notSignedIn   = document.getElementById('notSignedIn');
+    const container     = document.getElementById('historyContainer');
+    const listEl        = document.getElementById('historyList');
+    const emptyEl       = document.getElementById('historyEmpty');
+    const countEl       = document.getElementById('historyCount');
+
+    let calcs = [];
+
+    const navProfileEl = document.getElementById('navProfile');
+    const navProfileDefaultHTML = navProfileEl ? navProfileEl.innerHTML : '';
+    function paintNavAvatar(user) {
+      if (!navProfileEl) return;
+      let g = '';
+      try { g = localStorage.getItem('goldCalcGender_' + (user ? user.uid : '')) || ''; } catch (e) {}
+      navProfileEl.innerHTML = (g === 'male' || g === 'female')
+        ? '<img class="nav-avatar" src="' + (g === 'female' ? 'avatar-female.png' : 'avatar-male.png') + '" alt="">'
+        : navProfileDefaultHTML;
+    }
+
+    function fmtMmk(n) {
+      const v = Math.round(Number(n) || 0);
+      return v.toLocaleString('en-US') + ' MMK';
+    }
+    function itemTypeLabel(t) { return TYPE_KEY[t] ? tr(TYPE_KEY[t]) : (t || '—'); }
+    function itemNameLabel(v) { return ITEM_KEY[v] ? tr(ITEM_KEY[v]) : (v || '—'); }
+    function purityLabel(p) { return p ? (PURITY_KEY[p] ? tr(PURITY_KEY[p]) : p) : '—'; }
+    function fmtWeight(K, P, Y) {
+      const parts = [];
+      if (Number(K)) parts.push(Number(K) + 'K');
+      if (Number(P)) parts.push(Number(P) + 'P');
+      if (Number(Y)) parts.push(Number(Y) + 'Y');
+      return parts.length ? parts.join(' ') : '0';
+    }
+    function fmtDate(ts) {
+      if (!ts) return '';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function render() {
+      listEl.innerHTML = '';
+      if (!calcs.length) {
+        emptyEl.hidden = false;
+        countEl.textContent = '';
+        return;
+      }
+      emptyEl.hidden = true;
+      countEl.textContent = `${calcs.length} ${tr('savedSuffix')}`;
+
+      calcs.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        card.dataset.id = c.id;
+
+        const titleName = c.specificItemValue && c.itemNameValue === 'other'
+          ? c.specificItemValue
+          : itemNameLabel(c.itemNameValue) || '—';
+
+        card.innerHTML = `
+          <div class="history-card-controls">
+            <button class="history-delete" data-action="delete" aria-label="Delete">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+          <div class="history-card-top">
+            <div>
+              <div class="history-card-title">${titleName}</div>
+              <div class="history-card-meta">${itemTypeLabel(c.itemType)} · ${fmtDate(c.timestamp)}</div>
+            </div>
+          </div>
+          <div class="history-card-rows">
+            <div class="row"><span>${tr('purity')}</span><span>${purityLabel(c.goldPurity)}</span></div>
+            <div class="row"><span>${tr('itemWeightLabel')}</span><span>${fmtWeight(c.weightK, c.weightP, c.weightY)}</span></div>
+          </div>
+          <div class="history-card-cost">${fmtMmk(c.itemCost)}</div>
+        `;
+
+        card.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (!confirm(tr('deleteConfirm'))) return;
+          try {
+            await deleteCalculation(c.id);
+            calcs = calcs.filter(x => x.id !== c.id);
+            render();
+          } catch (err) {
+            alert(tr('couldNotDelete') + err.message);
+          }
+        });
+
+        listEl.appendChild(card);
+      });
+    }
+
+    onAuthStateChange(async (user) => {
+      loadingState.hidden = true;
+      if (!user) {
+        notSignedIn.hidden = false;
+        container.hidden = true;
+        return;
+      }
+      notSignedIn.hidden = true;
+      container.hidden = false;
+      paintNavAvatar(user);
+      try {
+        calcs = await getCalculations();
+        render();
+      } catch (err) {
+        listEl.innerHTML = '';
+        emptyEl.hidden = false;
+        emptyEl.innerHTML = '<h3>' + tr('couldNotLoad') + '</h3><p>' + (err.message || '') + '</p>';
+      }
+    });
+
+    // ---------- bottom nav ----------
+    document.getElementById('navPricing').addEventListener('click', () => { window.location.href = 'index.html#pricing'; });
+    document.getElementById('navHome').addEventListener('click', () => { window.location.href = 'index.html'; });
+    document.getElementById('navCompare').addEventListener('click', () => { window.location.href = 'compare.html'; });
+    document.getElementById('navProfile').addEventListener('click', () => { window.location.href = 'profile.html'; });
+
+    // ---------- Options menu + language ----------
+    const optionsMenu = document.getElementById('optionsMenu');
+    function closeOptions() { optionsMenu.classList.add('hidden'); }
+    document.getElementById('optionsToggle').addEventListener('click', () => optionsMenu.classList.remove('hidden'));
+    document.getElementById('optBackdrop').addEventListener('click', closeOptions);
+    document.getElementById('optEditPrice').addEventListener('click', () => { window.location.href = 'index.html#pricing'; });
+    document.getElementById('optHistory').addEventListener('click', closeOptions);   // already on history/profile area
+    document.getElementById('optEditInfo').addEventListener('click', () => { window.location.href = 'profile.html#edit'; });
+    document.getElementById('optCompare').addEventListener('click', () => { window.location.href = 'compare.html'; });
+    function markLang(l) { document.querySelectorAll('.opt-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l)); }
+    function applyPageLang(l) {
+      setLang(l); applyLangClass(l); translateStatic(l); markLang(l);
+      render();
+    }
+    document.querySelectorAll('.opt-lang-btn').forEach(b => {
+      b.addEventListener('click', (e) => { e.stopPropagation(); applyPageLang(b.dataset.lang); });
+    });
+
+    applyLangClass(getLang());
+    translateStatic(getLang());
+    markLang(getLang());
+  </script>
+</body>
+</html>

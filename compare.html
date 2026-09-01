@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Compare · Buy Gold Cal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Myanmar:wght@400;500;600;700;800&family=Padauk:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="auth.css" />
+<link rel="stylesheet" href="profile.css" />
+</head>
+<body class="theme-light profile-dashboard">
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('goldCalcTheme');
+      if (savedTheme === 'dark') document.body.classList.add('theme-dark');
+    } catch (e) {}
+  </script>
+
+  <div class="pf-wrap">
+
+    <div class="pf-topbar">
+      <button class="hero-icon-btn" id="optionsToggle" type="button" aria-label="Menu" data-i18n-aria="ariaMenu">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="17" x2="18" y2="17"/></svg>
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingState" class="pf-state"><p data-i18n="loading">Loading…</p></div>
+
+    <!-- Not signed in -->
+    <div id="notSignedIn" class="pf-state" hidden>
+      <h3 data-i18n="notSignedIn">You're not signed in</h3>
+      <p data-i18n="notSignedInCompare">Sign in to compare your saved invoices.</p>
+      <a href="signin.html" class="primary-btn" data-i18n="signIn">Sign In</a>
+    </div>
+
+    <!-- COMPARE MODE view -->
+    <div id="cmpView" hidden>
+      <div class="cmp-title" data-i18n="compareMode">COMPARE MODE</div>
+      <div class="cmp-canvas">
+        <!-- empty -->
+        <div id="cmpEmpty" class="cmp-empty">
+          <button id="cmpSelectBtnEmpty" class="cmp-orange-btn" type="button" data-i18n="select">Select</button>
+          <p data-i18n="pleaseSelectCompare">Please select to compare</p>
+        </div>
+        <!-- result -->
+        <div id="cmpResult" hidden>
+          <div class="cmp-canvas-top">
+            <button id="cmpSelectBtnTop" class="cmp-orange-btn" type="button" data-i18n="select">Select</button>
+          </div>
+          <div class="cmp-head">
+            <span data-i18n="colItemInfo">Item Info</span>
+            <span data-i18n="colItemWeight">Item Weight</span>
+            <span data-i18n="colTotalCost">Total Cost</span>
+          </div>
+          <div id="cmpRows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SELECT view -->
+    <div id="cmpSelect" hidden>
+      <div class="pf-history-head">
+        <div class="pf-history-title" style="font-size:27px;letter-spacing:1.2px;" data-i18n="selectTitle">SELECT</div>
+        <button id="cmpFilter" class="pf-filter" type="button" aria-label="Filter">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="8" cy="18" r="2" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <div id="cmpSelectList" class="pf-list"></div>
+      <div id="cmpSelectEmpty" class="pf-state" hidden>
+        <h3 data-i18n="noInvoices">No saved invoices yet</h3>
+        <p data-i18n="noInvoicesDesc">Save some calculations first, then compare them here.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Options menu -->
+  <div id="optionsMenu" class="opt-modal hidden">
+    <div class="opt-backdrop" id="optBackdrop"></div>
+    <div class="opt-card">
+      <button class="opt-item" id="optEditPrice" type="button" data-i18n="optEditPrice">Edit Gold Price</button>
+      <button class="opt-item" id="optHistory" type="button" data-i18n="optHistory">My History</button>
+      <button class="opt-item" id="optEditInfo" type="button" data-i18n="optEditInfo">Edit My Info</button>
+      <button class="opt-item" id="optCompare" type="button" data-i18n="optCompare">Compare Mode</button>
+      <div class="opt-lang">
+        <button class="opt-lang-btn" data-lang="en">ENG</button>
+        <button class="opt-lang-btn" data-lang="mm">မြန်မာ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Done button (select mode) -->
+  <button id="cmpDone" class="cmp-orange-btn cmp-done" type="button" hidden data-i18n="done">Done</button>
+
+  <!-- Bottom nav (same on every page) -->
+  <nav id="cmpBottomNav" class="bottom-nav" hidden aria-label="Main navigation">
+    <button class="nav-item" id="navPricing" type="button" aria-label="Pricing">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.3c-.4-.8-1.4-1.3-2.8-1.3-1.7 0-2.8.8-2.8 2 0 2.8 5.8 1.2 5.8 4 0 1.2-1.1 2-2.8 2-1.5 0-2.5-.5-2.9-1.4"/><path d="M12 6.3v11.4"/></svg>
+    </button>
+    <button class="nav-item" id="navHome" type="button" aria-label="Calculator">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2V9.5z"/></svg>
+    </button>
+    <button class="nav-item active" id="navCompare" type="button" aria-label="Compare" aria-current="page">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 2 21 6 17 10"/><line x1="3" y1="6" x2="21" y2="6"/><polyline points="7 14 3 18 7 22"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+    </button>
+    <button class="nav-item" id="navProfile" type="button" aria-label="Profile">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+  </nav>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module">
+    import { onAuthStateChange, getCalculations } from './auth-utils.js';
+    import { tr, getLang, setLang, applyLangClass, translateStatic, TYPE_KEY, ITEM_KEY } from './i18n.js';
+
+    const $ = (id) => document.getElementById(id);
+    const MAX = 10;
+
+    const loadingState = $('loadingState');
+    const notSignedIn  = $('notSignedIn');
+    const cmpView   = $('cmpView');
+    const cmpSelect = $('cmpSelect');
+    const cmpEmpty  = $('cmpEmpty');
+    const cmpResult = $('cmpResult');
+    const cmpRows   = $('cmpRows');
+    const cmpCanvas = document.querySelector('.cmp-canvas');
+    const cmpList   = $('cmpSelectList');
+    const cmpSelectEmpty = $('cmpSelectEmpty');
+    const cmpDone   = $('cmpDone');
+    const bottomNav = $('cmpBottomNav');
+
+    let calcs = [];
+    const selected = new Set();
+
+    // ---------- helpers ----------
+    function fmtMmk(n) { return (Math.round(Number(n) || 0)).toLocaleString('en-US') + ' MMK'; }
+    function typeLabel(t) { return TYPE_KEY[t] ? tr(TYPE_KEY[t]) : (t || '—'); }
+    function nameOf(c) {
+      if (c.itemNameValue === 'other') return (c.specificItemValue || '').trim() || tr('itemOther');
+      return ITEM_KEY[c.itemNameValue] ? tr(ITEM_KEY[c.itemNameValue]) : '—';
+    }
+    function weightStr(K, P, Y) {
+      const parts = [];
+      if (Number(K)) parts.push(Number(K) + 'K');
+      if (Number(P)) parts.push(Number(P) + 'P');
+      if (Number(Y)) parts.push(Number(Y) + 'Y');
+      return parts.join(' ');
+    }
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function toDate(ts) { if (!ts) return null; return ts.toDate ? ts.toDate() : new Date(ts); }
+    // Prefer the number stored on the invoice; only pre-change documents that
+    // have none fall back to a position-derived reference.
+    function buildRefNumbers(list) {
+      const asc = [...list].reverse();
+      const byDay = {}; const refs = {};
+      asc.forEach(c => {
+        if (c.invoiceNo) { refs[c.id] = String(c.invoiceNo); return; }
+        const d = toDate(c.timestamp) || new Date();
+        const key = String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear()).slice(-2);
+        byDay[key] = (byDay[key] || 0) + 1;
+        refs[c.id] = key + String(byDay[key]).padStart(4,'0');
+      });
+      return refs;
+    }
+    let refs = {};
+
+    const navProfileEl = $('navProfile');
+    const navProfileDefaultHTML = navProfileEl ? navProfileEl.innerHTML : '';
+    function paintNavAvatar(user) {
+      if (!navProfileEl) return;
+      let g = '';
+      try { g = localStorage.getItem('goldCalcGender_' + (user ? user.uid : '')) || ''; } catch (e) {}
+      navProfileEl.innerHTML = (g === 'male' || g === 'female')
+        ? '<img class="nav-avatar" src="' + (g === 'female' ? 'avatar-female.png' : 'avatar-male.png') + '" alt="">'
+        : navProfileDefaultHTML;
+    }
+
+    // ---------- view switching ----------
+    function showCompare() {
+      cmpSelect.hidden = true;
+      cmpDone.hidden = true;
+      cmpView.hidden = false;
+      renderResult();
+    }
+    function showSelect() {
+      cmpView.hidden = true;
+      cmpSelect.hidden = false;
+      cmpDone.hidden = false;
+      renderSelectList();
+    }
+
+    // ---------- compare result ----------
+    function weightCell(c) {
+      const lines = [];
+      const main = weightStr(c.weightK, c.weightP, c.weightY) || '0';
+      lines.push(main);
+      if (c.itemType === 'gold-gem') {
+        const g = weightStr(c.gemWeightK, c.gemWeightP, c.gemWeightY);
+        if (g) lines.push(`<small>${escapeHtml(g)} (${escapeHtml(tr('lblGem'))})</small>`);
+      }
+      if (c.itemType === 'gold-diamond' && Number(c.diamondWeight)) {
+        lines.push(`<small>${escapeHtml(String(c.diamondWeight))} (${escapeHtml(tr('lblDiamond'))})</small>`);
+      }
+      const loss = weightStr(c.lossWeightK, c.lossWeightP, c.lossWeightY);
+      if (loss) lines.push(`<small>${escapeHtml(loss)} (${escapeHtml(tr('lblLoss'))})</small>`);
+      return lines.join('');
+    }
+
+    function renderResult() {
+      const picks = calcs.filter(c => selected.has(c.id));
+      if (cmpCanvas) cmpCanvas.classList.toggle('cmp-canvas--bare', !picks.length);
+      if (!picks.length) {
+        cmpResult.hidden = true;
+        cmpEmpty.hidden = false;
+        return;
+      }
+      cmpEmpty.hidden = true;
+      cmpResult.hidden = false;
+      cmpRows.innerHTML = picks.map(c => `
+        <div class="cmp-row">
+          <div>
+            <div class="cmp-ci-type">${escapeHtml(typeLabel(c.itemType))}</div>
+            <div class="cmp-ci-name">${escapeHtml(nameOf(c))}</div>
+          </div>
+          <div class="cmp-w">${weightCell(c)}</div>
+          <div class="cmp-cost">${escapeHtml(fmtMmk(c.itemCost))}</div>
+        </div>
+      `).join('');
+    }
+
+    // ---------- select list ----------
+    function renderSelectList() {
+      cmpList.innerHTML = '';
+      if (!calcs.length) { cmpSelectEmpty.hidden = false; return; }
+      cmpSelectEmpty.hidden = true;
+      calcs.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'cmp-select-row';
+        const isSel = selected.has(c.id);
+        row.innerHTML = `
+          <span class="cmp-circle ${isSel ? 'selected' : ''}"></span>
+          <div class="pf-item ${isSel ? 'selected' : ''}">
+            <div class="pf-item-type">${escapeHtml((c.itemNameValue ? nameOf(c) : typeLabel(c.itemType)).toUpperCase())}</div>
+            <div class="pf-item-num">${escapeHtml(refs[c.id] || '')}</div>
+            <div class="pf-item-weight">${escapeHtml(weightStr(c.weightK, c.weightP, c.weightY) || '0')}</div>
+            <div class="pf-item-cost">${escapeHtml(fmtMmk(c.itemCost))}</div>
+          </div>
+        `;
+        const toggle = () => {
+          if (selected.has(c.id)) selected.delete(c.id);
+          else {
+            if (selected.size >= MAX) return;  // cap at 10
+            selected.add(c.id);
+          }
+          renderSelectList();
+        };
+        row.querySelector('.cmp-circle').addEventListener('click', toggle);
+        row.querySelector('.pf-item').addEventListener('click', toggle);
+        cmpList.appendChild(row);
+      });
+    }
+
+    // ---------- buttons ----------
+    $('cmpSelectBtnEmpty').addEventListener('click', showSelect);
+    $('cmpSelectBtnTop').addEventListener('click', showSelect);
+    cmpDone.addEventListener('click', showCompare);
+
+    // bottom nav
+    $('navPricing').addEventListener('click', () => { window.location.href = 'index.html#pricing'; });
+    $('navHome').addEventListener('click', () => { window.location.href = 'index.html'; });
+    $('navProfile').addEventListener('click', () => { window.location.href = 'profile.html'; });
+    // Compare is the current page.
+
+    // ---------- Options menu + language ----------
+    const optionsMenu = $('optionsMenu');
+    function closeOptions() { optionsMenu.classList.add('hidden'); }
+    $('optionsToggle').addEventListener('click', () => optionsMenu.classList.remove('hidden'));
+    $('optBackdrop').addEventListener('click', closeOptions);
+    $('optEditPrice').addEventListener('click', () => { window.location.href = 'index.html#pricing'; });
+    $('optHistory').addEventListener('click', () => { window.location.href = 'profile.html'; });
+    $('optEditInfo').addEventListener('click', () => { window.location.href = 'profile.html#edit'; });
+    $('optCompare').addEventListener('click', closeOptions);   // already on compare
+    function markLang(l) { document.querySelectorAll('.opt-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l)); }
+    function applyPageLang(l) {
+      setLang(l); applyLangClass(l); translateStatic(l); markLang(l);
+      renderResult(); renderSelectList();
+    }
+    document.querySelectorAll('.opt-lang-btn').forEach(b => {
+      b.addEventListener('click', (e) => { e.stopPropagation(); applyPageLang(b.dataset.lang); });
+    });
+
+    applyLangClass(getLang());
+    translateStatic(getLang());
+    markLang(getLang());
+
+    // ---------- auth ----------
+    onAuthStateChange(async (user) => {
+      loadingState.hidden = true;
+      if (!user) {
+        notSignedIn.hidden = false;
+        cmpView.hidden = true;
+        cmpSelect.hidden = true;
+        bottomNav.hidden = false;
+        return;
+      }
+      notSignedIn.hidden = true;
+      bottomNav.hidden = false;
+      paintNavAvatar(user);
+
+      const cacheKey = 'goldCalcCache_' + user.uid;
+
+      // 1. Instant: render from cached list if we have one
+      let shownFromCache = false;
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          calcs = JSON.parse(raw);
+          refs = buildRefNumbers(calcs);
+          showSelect();
+          shownFromCache = true;
+        }
+      } catch (e) {}
+
+      // 2. Background: fetch fresh data, then re-render + update cache
+      try {
+        const fresh = await getCalculations();
+        calcs = fresh;
+        refs = buildRefNumbers(calcs);
+        try {
+          const slim = calcs.map(c => ({ ...c, timestamp: (toDate(c.timestamp) ? toDate(c.timestamp).getTime() : Date.now()) }));
+          localStorage.setItem(cacheKey, JSON.stringify(slim));
+        } catch (e) {}
+      } catch (e) {
+        if (!shownFromCache) calcs = [];
+      }
+      showSelect();
+    });
+  </script>
+</body>
+</html>

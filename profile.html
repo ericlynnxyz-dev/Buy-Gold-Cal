@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Profile · Buy Gold Cal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Myanmar:wght@400;500;600;700;800&family=Padauk:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="auth.css" />
+<link rel="stylesheet" href="profile.css" />
+</head>
+<body class="theme-light profile-dashboard">
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('goldCalcTheme');
+      if (savedTheme === 'dark') document.body.classList.add('theme-dark');
+    } catch (e) {}
+  </script>
+
+  <div class="pf-wrap">
+
+    <div class="pf-topbar">
+      <button class="hero-icon-btn" id="optionsToggle" type="button" aria-label="Menu" data-i18n-aria="ariaMenu">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="17" x2="18" y2="17"/></svg>
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingState" class="pf-state"><p data-i18n="loading">Loading…</p></div>
+
+    <!-- Not signed in -->
+    <div id="notSignedIn" class="pf-state" hidden>
+      <h3 data-i18n="notSignedIn">You're not signed in</h3>
+      <p data-i18n="notSignedInProfile">Sign in to view your profile and saved history.</p>
+      <a href="signin.html" class="primary-btn" data-i18n="signIn">Sign In</a>
+    </div>
+
+    <!-- Signed in: dashboard -->
+    <div id="dashboard" hidden>
+
+      <div class="pf-top">
+        <div id="pfAvatar" class="pf-avatar">U</div>
+        <div class="pf-card">
+          <button id="pfEditBtn" class="pf-edit" type="button" aria-label="Edit name">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+          <div id="pfName" class="pf-name">User</div>
+          <div id="pfCount" class="pf-count">Total Invoice: 0</div>
+        </div>
+      </div>
+
+      <div class="pf-history-head">
+        <div class="pf-history-title" data-i18n="historyHeading">HISTORY</div>
+        <a href="history.html" id="pfFilter" class="pf-filter" aria-label="Manage history">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="8" cy="18" r="2" fill="currentColor"/></svg>
+        </a>
+      </div>
+
+      <div id="pfList" class="pf-list"></div>
+
+      <div id="pfEmpty" class="pf-state" hidden>
+        <h3 data-i18n="emptyTitle">No saved calculations yet</h3>
+        <p data-i18n="emptyDesc">Calculations you save will appear here.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Options menu -->
+  <div id="optionsMenu" class="opt-modal hidden">
+    <div class="opt-backdrop" id="optBackdrop"></div>
+    <div class="opt-card">
+      <button class="opt-item" id="optEditPrice" type="button" data-i18n="optEditPrice">Edit Gold Price</button>
+      <button class="opt-item" id="optHistory" type="button" data-i18n="optHistory">My History</button>
+      <button class="opt-item" id="optEditInfo" type="button" data-i18n="optEditInfo">Edit My Info</button>
+      <button class="opt-item" id="optCompare" type="button" data-i18n="optCompare">Compare Mode</button>
+      <div class="opt-lang">
+        <button class="opt-lang-btn" data-lang="en">ENG</button>
+        <button class="opt-lang-btn" data-lang="mm">မြန်မာ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav (same on every page) -->
+  <nav id="pfBottomNav" class="bottom-nav" hidden aria-label="Main navigation">
+    <button class="nav-item" id="pfNavPricing" type="button" aria-label="Pricing">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.3c-.4-.8-1.4-1.3-2.8-1.3-1.7 0-2.8.8-2.8 2 0 2.8 5.8 1.2 5.8 4 0 1.2-1.1 2-2.8 2-1.5 0-2.5-.5-2.9-1.4"/><path d="M12 6.3v11.4"/></svg>
+    </button>
+    <button class="nav-item" id="pfNavHome" type="button" aria-label="Calculator">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2V9.5z"/></svg>
+    </button>
+    <button class="nav-item" id="pfNavCompare" type="button" aria-label="Compare">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 2 21 6 17 10"/><line x1="3" y1="6" x2="21" y2="6"/><polyline points="7 14 3 18 7 22"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+    </button>
+    <button class="nav-item active" id="pfNavProfile" type="button" aria-label="Profile" aria-current="page">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+  </nav>
+
+  <!-- Edit name modal -->
+  <div id="pfModal" class="pf-modal" hidden>
+    <div class="pf-modal-backdrop" id="pfModalBackdrop"></div>
+    <div class="pf-modal-card">
+      <h3 data-i18n="editProfile">Edit profile</h3>
+      <p data-i18n="editProfileDesc">Change the name shown on your profile.</p>
+      <label for="pfNameInput" data-i18n="displayName">Display name</label>
+      <input id="pfNameInput" class="pf-name-input" type="text" maxlength="40" placeholder="Your name" data-i18n-ph="namePlaceholder" />
+      <label style="margin-top:16px;" data-i18n="profilePicture">Profile picture</label>
+      <div class="pf-gender">
+        <button type="button" class="pf-gender-opt" data-gender="male" id="pfGenderMale" data-i18n="male">Male</button>
+        <button type="button" class="pf-gender-opt" data-gender="female" id="pfGenderFemale" data-i18n="female">Female</button>
+      </div>
+      <div class="pf-modal-actions">
+        <button id="pfCancelBtn" class="pf-btn pf-btn-cancel" type="button" data-i18n="cancel">Cancel</button>
+        <button id="pfSaveBtn" class="pf-btn pf-btn-save" type="button" data-i18n="save">Save</button>
+      </div>
+      <button id="pfSignOutBtn" class="pf-signout" type="button" data-i18n="signOut">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Saved invoice modal (same receipt as the calculator) -->
+  <div id="pfInvoiceModal" class="modal hidden">
+    <div class="modal-backdrop" id="pfInvBackdrop"></div>
+    <div class="modal-content">
+      <button id="pfInvClose" class="modal-close-x" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+      </button>
+      <div id="pfInvoiceCanvas" class="invoice">
+        <div class="invoice-head">
+          <div class="invoice-brand">
+            <h1 class="invoice-brand-title">Buy Gold Cal</h1>
+            <span class="invoice-brand-sub" id="pfInvReceiptLabel">PURCHASE RECEIPT</span>
+          </div>
+          <div class="invoice-meta">
+            <div class="invoice-date" id="pfInvDate"></div>
+            <div class="invoice-number" id="pfInvNumber"></div>
+          </div>
+        </div>
+        <div class="invoice-body" id="pfInvoiceBody"></div>
+        <div class="invoice-total-card">
+          <span class="invoice-total-label" id="pfInvTotalLabel">TOTAL ITEM COST</span>
+          <strong class="invoice-total-value" id="pfInvTotal">0 MMK</strong>
+        </div>
+        <div class="invoice-footer">Generated by Buy Gold Cal</div>
+      </div>
+      <div class="modal-actions">
+        <button id="pfInvEdit" class="primary-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          <span data-i18n="edit">Edit</span>
+        </button>
+        <button id="pfInvDownload" class="primary-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span id="pfInvDownloadLabel">Save Image</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module">
+    import {
+      onAuthStateChange, signOutUser, updateDisplayName,
+      getCalculations, userDisplayName, userInitials, userAvatarUrl
+    } from './auth-utils.js';
+    import { tr, getLang, setLang, applyLangClass, translateStatic, TYPE_KEY, ITEM_KEY, PURITY_KEY } from './i18n.js';
+
+    const $ = (id) => document.getElementById(id);
+    const loadingState = $('loadingState');
+    const notSignedIn  = $('notSignedIn');
+    const dashboard    = $('dashboard');
+    const bottomNav    = $('pfBottomNav');
+    const avatarEl     = $('pfAvatar');
+    const nameEl       = $('pfName');
+    const countEl      = $('pfCount');
+    const listEl       = $('pfList');
+    const emptyEl      = $('pfEmpty');
+
+    const modal        = $('pfModal');
+    const nameInput    = $('pfNameInput');
+
+    let currentUser = null;
+    let currentGender = '';   // '', 'male', or 'female'
+    let lastCalcs = [];
+    const genderKey = (uid) => 'goldCalcGender_' + uid;
+
+    const pfNavProfileEl = $('pfNavProfile');
+    const pfNavProfileDefaultHTML = pfNavProfileEl ? pfNavProfileEl.innerHTML : '';
+    function paintNavAvatar() {
+      if (!pfNavProfileEl) return;
+      pfNavProfileEl.innerHTML = (currentGender === 'male' || currentGender === 'female')
+        ? '<img class="nav-avatar" src="' + (currentGender === 'female' ? 'avatar-female.png' : 'avatar-male.png') + '" alt="">'
+        : pfNavProfileDefaultHTML;
+    }
+
+    // ---------- helpers ----------
+    function fmtMmk(n) {
+      const v = Math.round(Number(n) || 0);
+      return v.toLocaleString('en-US') + ' MMK';
+    }
+    function typeLabel(t) {
+      return TYPE_KEY[t] ? tr(TYPE_KEY[t]) : (t || '');
+    }
+    function fmtWeight(K, P, Y) {
+      const parts = [];
+      if (Number(K)) parts.push(Number(K) + 'K');
+      if (Number(P)) parts.push(Number(P) + 'P');
+      if (Number(Y)) parts.push(Number(Y) + 'Y');
+      return parts.length ? parts.join(' ') : '0';
+    }
+    function toDate(ts) {
+      if (!ts) return null;
+      return ts.toDate ? ts.toDate() : new Date(ts);
+    }
+    // Invoice reference like 2905260003 (10 digits: DDMMYY + 4-digit per-day sequence).
+    //
+    // The number is written onto the document when the invoice is saved, so we
+    // just read it back. Deriving it from list position (as this used to) meant
+    // deleting one invoice renumbered every later one.
+    //
+    // Documents saved before numbers were stored have none, so those keep the
+    // old position-derived reference — assigned only among themselves, so a
+    // stored number is never affected by a legacy one.
+    function buildRefNumbers(calcsDesc) {
+      const asc = [...calcsDesc].reverse();   // oldest first
+      const seqByDay = {};
+      const refById = {};
+      asc.forEach(c => {
+        if (c.invoiceNo) { refById[c.id] = String(c.invoiceNo); return; }
+        const d = toDate(c.timestamp) || new Date();
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yy = String(d.getFullYear()).slice(-2);
+        const key = `${dd}${mm}${yy}`;
+        seqByDay[key] = (seqByDay[key] || 0) + 1;
+        refById[c.id] = key + String(seqByDay[key]).padStart(4, '0');
+      });
+      return refById;
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // ---------- Invoice (mirrors the calculator's PURCHASE RECEIPT) ----------
+    // Uses the shared dictionary from i18n.js — see TYPE_KEY/ITEM_KEY/PURITY_KEY above.
+    const it = tr;
+    const localizeNum = (s) => String(s);  // numbers always English in both languages
+    const invFmt = (n) => {
+      if (!isFinite(n)) n = 0;
+      return localizeNum(Math.round(n).toLocaleString('en-US'));
+    };
+
+    function toYati(K, P, Y) {
+      const totalY = (Number(K)||0) * 128 + (Number(P)||0) * 8 + (Number(Y)||0);
+      return totalY * 0.8;
+    }
+    function invWeight(K, P, Y) {
+      const a = Number(K)||0, b = Number(P)||0, c = Number(Y)||0;
+      const parts = [];
+      if (a) parts.push(localizeNum(String(a)) + it('unitK'));
+      if (b) parts.push(localizeNum(String(b)) + it('unitP'));
+      if (c) parts.push(localizeNum(String(c)) + it('unitY'));
+      return parts.length ? parts.join(' ') : localizeNum('0');
+    }
+    function savedItemName(c) {
+      if (!c.itemNameValue) return null;
+      if (c.itemNameValue === 'other') return (c.specificItemValue || '').trim() || it('itemOther');
+      return it(ITEM_KEY[c.itemNameValue] || 'itemOther');
+    }
+
+    const invoiceModal = $('pfInvoiceModal');
+    let currentInvoiceCalc = null;
+
+    function buildInvoice(c, ref) {
+      const d = toDate(c.timestamp) || new Date();
+      $('pfInvReceiptLabel').textContent = it('purchaseReceipt');
+      $('pfInvTotalLabel').textContent = it('totalItemCost');
+      $('pfInvDownloadLabel').textContent = it('saveJpeg');
+      $('pfInvDate').textContent = d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+      $('pfInvNumber').textContent = '#' + (ref || '');
+
+      const sections = [];
+      const money = (n) => invFmt(n) + ' ' + it('mmk');
+
+      // ITEM: what was actually sold. Neither of these was on the receipt before.
+      const nameDisplay = savedItemName(c);
+      const itemRows = [];
+      if (nameDisplay) itemRows.push([it('itemNameLabel'), nameDisplay]);
+      if (c.itemType) itemRows.push([it('itemTypeLabel'), typeLabel(c.itemType)]);
+      if (itemRows.length) sections.push({ label: it('secItem'), rows: itemRows });
+
+      // WEIGHT: Item, Loss (if any), Gem (if gem), Diamond (if diamond)
+      const weightRows = [
+        [it('itemWeight'), invWeight(c.weightK, c.weightP, c.weightY)]
+      ];
+      if (Number(c.lossWeightK) || Number(c.lossWeightP) || Number(c.lossWeightY)) {
+        weightRows.push([it('lossWeight'), invWeight(c.lossWeightK, c.lossWeightP, c.lossWeightY)]);
+      }
+      if (c.itemType === 'gold-gem') weightRows.push([it('gemWeight'), invWeight(c.gemWeightK, c.gemWeightP, c.gemWeightY)]);
+      if (c.itemType === 'gold-diamond') weightRows.push([it('diamondWeight'), localizeNum(String(c.diamondWeight || 0))]);
+      sections.push({ label: it('secWeights'), rows: weightRows });
+
+      // GOLD: purity, rate, gold weight and gold cost — without these the
+      // customer cannot check how the total was reached.
+      const goldRows = [
+        [it('quality'), c.goldPurity ? it(PURITY_KEY[c.goldPurity] || 'quality16') : '—'],
+        [it('pricePerK'), invFmt(c.goldPricePerK) + ' ' + it('mmk') + ' ' + it('perK')],
+      ];
+      if (c.goldKyat != null) {
+        goldRows.push([it('goldWeight'), localizeNum(Number(c.goldKyat).toFixed(4).replace(/\.?0+$/, '')) + ' ' + it('unitK')]);
+      }
+      goldRows.push([it('goldCost'), money(c.goldCost)]);
+      sections.push({ label: it('secGold'), rows: goldRows });
+
+      // GEM / DIAMOND: the stone's own cost, so the total adds up on paper.
+      if (c.itemType === 'gold-gem') {
+        const gemRows = [[it('gemWeight'), localizeNum(toYati(c.gemWeightK, c.gemWeightP, c.gemWeightY).toFixed(2)) + ' ' + it('unitYt')]];
+        if (c.costMode !== 'fixed') gemRows.push([it('gemPrice'), invFmt(c.gemPrice) + ' ' + it('mmk') + ' ' + it('perYt')]);
+        gemRows.push([it('gemCost'), money(c.gemCost)]);
+        sections.push({ label: it('secGem'), rows: gemRows });
+      }
+      if (c.itemType === 'gold-diamond') {
+        // Weight already appears under WEIGHTS in the same unit — rate and cost only.
+        const dRows = [];
+        if (c.costMode !== 'fixed') dRows.push([it('diamondPrice'), money(c.diamondPrice)]);
+        dRows.push([it('diamondCost'), money(c.diamondCost)]);
+        sections.push({ label: it('secDiamond'), rows: dRows });
+      }
+
+      // FEES
+      sections.push({ label: it('secFees'), rows: [[it('craftingFee'), money(c.craftingFee)]] });
+
+      $('pfInvoiceBody').innerHTML = sections.map(sec => {
+        const rowsHtml = sec.rows.map(([k, v]) =>
+          `<div class="inv-row"><span>${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>`
+        ).join('');
+        return `<div class="inv-section"><div class="inv-section-label">${escapeHtml(sec.label)}</div>${rowsHtml}</div>`;
+      }).join('');
+
+      $('pfInvTotal').textContent = invFmt(c.itemCost) + ' ' + it('mmk');
+    }
+
+    function openInvoice(c, ref) {
+      currentInvoiceCalc = c;
+      buildInvoice(c, ref);
+      invoiceModal.classList.remove('closing');
+      invoiceModal.classList.remove('hidden');
+    }
+    function closeInvoice() {
+      invoiceModal.classList.add('closing');
+      setTimeout(() => { invoiceModal.classList.add('hidden'); invoiceModal.classList.remove('closing'); }, 200);
+    }
+
+    $('pfInvClose').addEventListener('click', closeInvoice);
+    $('pfInvBackdrop').addEventListener('click', closeInvoice);
+
+    // Edit → open the calculator pre-filled with this invoice's values
+    $('pfInvEdit').addEventListener('click', () => {
+      if (!currentInvoiceCalc) return;
+      try {
+        sessionStorage.setItem('pendingEditInvoice', JSON.stringify({
+          id: currentInvoiceCalc.id,
+          data: currentInvoiceCalc
+        }));
+      } catch (e) {}
+      window.location.href = 'index.html';
+    });
+
+    $('pfInvDownload').addEventListener('click', async () => {
+      const node = $('pfInvoiceCanvas');
+      try {
+        const canvas = await html2canvas(node, { backgroundColor:'#ffffff', scale:2, useCORS:true });
+        const link = document.createElement('a');
+        const receiptNum = ($('pfInvNumber').textContent || '').replace('#', '').trim();
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        link.download = `invoice-${receiptNum || stamp}.jpg`;
+        link.href = canvas.toDataURL('image/jpeg', 0.95);
+        link.click();
+      } catch (e) {
+        alert('Could not save image: ' + e.message);
+      }
+    });
+
+    function renderHistory(calcs) {
+      listEl.innerHTML = '';
+      if (!calcs.length) {
+        emptyEl.hidden = false;
+        return;
+      }
+      emptyEl.hidden = true;
+      const refs = buildRefNumbers(calcs);
+      calcs.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'pf-item';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.innerHTML = `
+          <div class="pf-item-type">${escapeHtml(savedItemName(c) || typeLabel(c.itemType))}</div>
+          <div class="pf-item-num">${escapeHtml(refs[c.id] || '')}</div>
+          <div class="pf-item-weight">${escapeHtml(fmtWeight(c.weightK, c.weightP, c.weightY))}</div>
+          <div class="pf-item-cost">${escapeHtml(fmtMmk(c.itemCost))}</div>
+        `;
+        card.addEventListener('click', () => openInvoice(c, refs[c.id]));
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openInvoice(c, refs[c.id]); }
+        });
+        listEl.appendChild(card);
+      });
+    }
+
+    function paintUser(user) {
+      nameEl.textContent = userDisplayName(user);
+      if (currentGender === 'male' || currentGender === 'female') {
+        avatarEl.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = currentGender === 'female' ? 'avatar-female.png' : 'avatar-male.png';
+        img.alt = '';
+        avatarEl.appendChild(img);
+      } else {
+        avatarEl.innerHTML = '';
+        avatarEl.textContent = userInitials(user);
+      }
+    }
+
+    // ---------- auth flow ----------
+    onAuthStateChange(async (user) => {
+      loadingState.hidden = true;
+      if (!user) {
+        notSignedIn.hidden = false;
+        dashboard.hidden = true;
+        bottomNav.hidden = true;
+        return;
+      }
+      currentUser = user;
+      try { currentGender = localStorage.getItem(genderKey(user.uid)) || ''; } catch (e) { currentGender = ''; }
+      notSignedIn.hidden = true;
+      dashboard.hidden = false;
+      bottomNav.hidden = false;
+
+      paintUser(user);
+      paintNavAvatar();
+
+      if (location.hash === '#edit') {
+        try { history.replaceState(null, '', location.pathname); } catch (e) {}
+        openModal();
+      }
+
+      try {
+        const calcs = await getCalculations();
+        lastCalcs = calcs;
+        countEl.textContent = tr('totalInvoice') + ': ' + calcs.length;
+        renderHistory(calcs);
+      } catch (err) {
+        countEl.textContent = tr('totalInvoice') + ': —';
+        emptyEl.hidden = false;
+        emptyEl.querySelector('h3').textContent = tr('couldNotLoad');
+        emptyEl.querySelector('p').textContent = err.message || '';
+      }
+    });
+
+    // ---------- edit-name modal ----------
+    const genderBtns = [ $('pfGenderMale'), $('pfGenderFemale') ];
+    function setModalGender(g) {
+      genderBtns.forEach(b => b.classList.toggle('selected', b.dataset.gender === g));
+    }
+    function currentModalGender() {
+      const sel = genderBtns.find(b => b.classList.contains('selected'));
+      return sel ? sel.dataset.gender : '';
+    }
+    genderBtns.forEach(b => b.addEventListener('click', () => setModalGender(b.dataset.gender)));
+
+    function openModal() {
+      nameInput.value = currentUser ? (currentUser.displayName || '') : '';
+      setModalGender(currentGender);
+      modal.hidden = false;
+      setTimeout(() => nameInput.focus(), 50);
+    }
+    function closeModal() { modal.hidden = true; }
+
+    $('pfEditBtn').addEventListener('click', openModal);
+    $('pfModalBackdrop').addEventListener('click', closeModal);
+    $('pfCancelBtn').addEventListener('click', closeModal);
+
+    $('pfSaveBtn').addEventListener('click', async () => {
+      const newName = nameInput.value.trim();
+      if (!newName) { nameInput.focus(); return; }
+      const btn = $('pfSaveBtn');
+      btn.disabled = true;
+      try {
+        const user = await updateDisplayName(newName);
+        currentUser = user;
+        const g = currentModalGender();
+        currentGender = g;
+        try { if (g) localStorage.setItem(genderKey(user.uid), g); } catch (e) {}
+        paintUser(user);
+        paintNavAvatar();
+        closeModal();
+      } catch (err) {
+        alert(tr('couldNotSaveName') + (err && err.message || err));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    $('pfSignOutBtn').addEventListener('click', async () => {
+      try {
+        await signOutUser();
+        window.location.href = 'index.html';
+      } catch (e) {
+        alert(tr('couldNotSignOut') + e.message);
+      }
+    });
+
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('pfSaveBtn').click();
+    });
+
+    // ---------- bottom nav ----------
+    $('pfNavPricing').addEventListener('click', () => { window.location.href = 'index.html#pricing'; });
+    $('pfNavHome').addEventListener('click', () => { window.location.href = 'index.html'; });
+    $('pfNavCompare').addEventListener('click', () => { window.location.href = 'compare.html'; });
+    // Profile is the current page — already active, no navigation.
+
+    // ---------- Options menu + language ----------
+    const optionsMenu = $('optionsMenu');
+    function closeOptions() { optionsMenu.classList.add('hidden'); }
+    $('optionsToggle').addEventListener('click', () => optionsMenu.classList.remove('hidden'));
+    $('optBackdrop').addEventListener('click', closeOptions);
+    $('optEditPrice').addEventListener('click', () => { window.location.href = 'index.html#pricing'; });
+    $('optHistory').addEventListener('click', closeOptions);            // already on the history/profile page
+    $('optEditInfo').addEventListener('click', () => { closeOptions(); openModal(); });
+    $('optCompare').addEventListener('click', () => { window.location.href = 'compare.html'; });
+
+    function markLang(l) {
+      document.querySelectorAll('.opt-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l));
+    }
+    function applyPageLang(l) {
+      setLang(l);
+      applyLangClass(l);
+      translateStatic(l);
+      markLang(l);
+      countEl.textContent = tr('totalInvoice') + ': ' + lastCalcs.length;
+      renderHistory(lastCalcs);
+    }
+    document.querySelectorAll('.opt-lang-btn').forEach(b => {
+      b.addEventListener('click', (e) => { e.stopPropagation(); applyPageLang(b.dataset.lang); });
+    });
+
+    // initial language (static text) before auth resolves
+    applyLangClass(getLang());
+    translateStatic(getLang());
+    markLang(getLang());
+  </script>
+</body>
+</html>

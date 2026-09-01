@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx --yes serve -l 5050 .)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://127.0.0.1:5050/\" -UseBasicParsing -TimeoutSec 8; Write-Output \"UP $\\($r.StatusCode\\)\" } catch { Write-Output \"DOWN\" })",
+      "PowerShell($p = Start-Process -FilePath \"npx\" -ArgumentList \"--yes\",\"serve\",\"-l\",\"5050\",\".\" -PassThru -WindowStyle Hidden; Start-Sleep -Seconds 4; try { \\(Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5050/ -TimeoutSec 5\\).StatusCode } catch { $_.Exception.Message })"
+    ]
+  }
+}
