@@ -839,6 +839,16 @@ function applyLanguage(lang) {
     opt.classList.toggle('active', opt.dataset.lang === currentLang);
   });
 
+  // The top-nav auth label depends on who is signed in, so translateStatic
+  // cannot own it. Look the element up directly instead of going through
+  // applyAuthState: this function runs during module evaluation, before the
+  // top-nav consts further down are initialised.
+  const authLink = document.getElementById('topNavAuth');
+  if (authLink) {
+    const signedIn = (authLink.getAttribute('href') || '').indexOf('profile') !== -1;
+    authLink.setAttribute('aria-label', signedIn ? t('ariaProfile') : t('signIn'));
+  }
+
   updatePriceDisplay();
   updatePurityDisplay();
   updateItemTypeDisplay();
@@ -1042,7 +1052,7 @@ function applyAuthState(user) {
   const gSrc = genderAvatarSrc(user);
   if (user) {
     topNavAuth.setAttribute('href', 'profile.html');
-    topNavAuth.setAttribute('aria-label', 'Profile');
+    topNavAuth.setAttribute('aria-label', t('ariaProfile'));
     if (topNavText) topNavText.hidden = true;
     if (topNavAvatar) {
       topNavAvatar.hidden = false;
@@ -1066,7 +1076,7 @@ function applyAuthState(user) {
     }
   } else {
     topNavAuth.setAttribute('href', 'signin.html');
-    topNavAuth.setAttribute('aria-label', 'Sign in');
+    topNavAuth.setAttribute('aria-label', t('signIn'));
     if (topNavText) topNavText.hidden = false;
     if (topNavAvatar) { topNavAvatar.hidden = true; topNavAvatar.innerHTML = ''; topNavAvatar.textContent = 'U'; }
     if (navProfile) navProfile.innerHTML = navProfileDefaultHTML;

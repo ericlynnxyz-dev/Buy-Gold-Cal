@@ -20,6 +20,7 @@ export const I18N = {
     optEditInfo: 'Edit My Info', optCompare: 'Compare Mode',
     ariaMenu: 'Menu', ariaBack: 'Back to calculator',
     ariaToggleTheme: 'Toggle theme', ariaPricing: 'Pricing', ariaCalculator: 'Calculator',
+    ariaProfile: 'Profile',
     // item types
     typeGold: 'Gold', typeGoldGem: 'Gold + Gem', typeGoldDiamond: 'Gold + Diamond',
     // item names
@@ -118,6 +119,7 @@ export const I18N = {
     optEditInfo: 'အချက်အလက် ပြင်ရန်', optCompare: 'နှိုင်းယှဉ်ရန်',
     ariaMenu: 'မီနူး', ariaBack: 'ဂဏန်းတွက်စက်သို့ ပြန်ရန်',
     ariaToggleTheme: 'ပုံစံပြောင်းမည်', ariaPricing: 'ဈေးနှုန်း', ariaCalculator: 'ဂဏန်းပေါင်းစက်',
+    ariaProfile: 'ပရိုဖိုင်',
     typeGold: 'ရွှေ', typeGoldGem: 'ရွှေ + ကျောက်', typeGoldDiamond: 'ရွှေ + စိန်',
     itemNamePill: 'ပစ္စည်းအမည်', itemNameLabel: 'ပစ္စည်းအမည်', specificItem: 'အမျိုးအမည်',
     itemRing: 'လက်စွပ်', itemBracelet: 'လက်ကောက်', itemEarrings: 'နားကပ်', itemPendant: 'ဆွဲသီး',
