@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// Security rules for Buy Gold Cal.
+//
+// These are the real security boundary for this app. The Firebase config in
+// firebase-config.js is public by design — it ships to every browser that
+// loads the page — so nothing here may rely on the API key being secret.
+//
+// Deploy with either:
+//   firebase deploy --only firestore:rules
+// or by pasting this file into
+//   Firebase Console -> Firestore Database -> Rules -> Publish
+//
+// Verify from a terminal (PERMISSION_DENIED is the expected, correct result):
+//   curl -s "https://firestore.googleapis.com/v1/projects/buygoldcal/databases/(default)/documents/users?key=<web-api-key>"
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A signed-in user may read and write only the invoices stored under
+    // their own uid. request.auth is null for anonymous callers, so the
+    // uid comparison also blocks unauthenticated access.
+    match /users/{userId}/calculations/{calcId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Everything else is denied. Firestore denies unmatched paths by default;
+    // this is written out so the intent is explicit rather than incidental.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
