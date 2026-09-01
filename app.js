@@ -758,7 +758,9 @@ function buildInvoice(r, invNo) {
     label: t('secGold'),
     rows: [
       [t('quality'), state.qualityIndex == null ? '—' : t(QUALITY_KEYS[state.qualityIndex])],
-      [t('pricePerK'), fmt(r.goldPricePerK) + ' ' + t('mmk') + ' ' + t('perK')],
+      // No "/ K" suffix — the row label already says "per K", and the extra
+      // unit pushed this row onto a second line in Myanmar.
+      [t('pricePerK'), fmt(r.goldPricePerK) + ' ' + t('mmk')],
       [t('goldWeight'), localizeNum(r.goldKyat.toFixed(4).replace(/\.?0+$/, '')) + ' ' + t('unitK')],
       [t('goldCost'), money(r.goldCost)],
     ],
@@ -802,9 +804,15 @@ function buildInvoice(r, invNo) {
 $('downloadInvoice').addEventListener('click', async () => {
   const node = document.getElementById('invoiceCanvas');
   try {
+    // Wait for the webfonts before drawing. html2canvas paints whatever is
+    // resolved at call time, so exporting mid-load fell back to a face with
+    // no Myanmar glyphs.
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const canvas = await html2canvas(node, {
       backgroundColor: '#ffffff',
-      scale: 2,
+      // scale 3 — the receipt is physically small when printed or viewed on
+      // a phone, and Myanmar diacritics are the first thing to blur.
+      scale: 3,
       useCORS: true,
     });
     const link = document.createElement('a');

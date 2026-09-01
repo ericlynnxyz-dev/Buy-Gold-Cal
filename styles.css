@@ -1086,7 +1086,7 @@ body.lang-mm .opt-item { font-size: 17px; }
   line-height: 1.1;
 }
 .invoice-brand-sub {
-  font-size: 11px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 1.6px;
   color: #9a9a9a;
@@ -1094,13 +1094,13 @@ body.lang-mm .opt-item { font-size: 17px; }
 }
 .invoice-meta { text-align: right; }
 .invoice-date {
-  font-size: 13px;
+  font-size: 15px;
   color: #6a6a6a;
   font-weight: 500;
   margin-bottom: 3px;
 }
 .invoice-number {
-  font-size: 11px;
+  font-size: 14px;
   color: #9a9a9a;
   font-weight: 500;
   letter-spacing: 0.3px;
@@ -1117,7 +1117,7 @@ body.lang-mm .opt-item { font-size: 17px; }
   flex-direction: column;
 }
 .inv-section-label {
-  font-size: 10.5px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 1.6px;
   color: #b0b0b0;
@@ -1129,18 +1129,30 @@ body.lang-mm .opt-item { font-size: 17px; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 9px 0;
+  padding: 11px 0;
   border-bottom: 1px solid #f0f0f0;
-  font-size: 14px;
+  font-size: 17px;
 }
 .inv-row:last-child { border-bottom: none; }
 .inv-row span:first-child {
   color: #3a3a3a;
   font-weight: 500;
+  /* The label must never break mid-word. Myanmar has no spaces between
+     syllables, so a wrap lands inside a word (ကျပ်ဈေး -> ကျပ် / ဈေး). */
+  white-space: nowrap;
 }
 .inv-row span:last-child {
   color: #1a1a1a;
   font-weight: 600;
+  /* The value keeps the right edge and takes the remaining width; if it has
+     to run onto a second line it stays right-aligned rather than ragged.
+     keep-all stops a break landing inside a Myanmar word — browsers will
+     otherwise break between syllable clusters, splitting ကျပ်သား into
+     ကျ / ပ်သား. Any wrap now happens at a real space. */
+  text-align: right;
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .invoice-total-card {
@@ -1155,14 +1167,14 @@ body.lang-mm .opt-item { font-size: 17px; }
   margin-bottom: 22px;
 }
 .invoice-total-label {
-  font-size: 11px;
+  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 1.6px;
   color: rgba(255,255,255,0.7);
   font-weight: 600;
 }
 .invoice-total-value {
-  font-size: 22px;
+  font-size: 27px;
   font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.3px;
@@ -1170,7 +1182,7 @@ body.lang-mm .opt-item { font-size: 17px; }
 
 .invoice-footer {
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
   color: #b0b0b0;
   font-weight: 500;
   padding-top: 16px;
@@ -1314,6 +1326,35 @@ body.lang-mm .opt-item { font-size: 17px; }
 }
 
 /* ============ MYANMAR LANGUAGE — bigger + clearer ============ */
+
+/* Myanmar is a complex script: a consonant plus its medials and vowel signs
+   shape into ONE cluster. letter-spacing forces a gap between the parts of
+   that cluster, which splits words apart — ကျောက် renders as ကျော က်.
+   html2canvas makes it far worse, because it re-lays out each text run when
+   drawing the receipt to an image, so the saved JPEG was badly mangled even
+   where the screen looked acceptable.
+
+   So: never apply letter-spacing to Myanmar text. text-transform is dropped
+   too — Myanmar has no letter case, so uppercase only adds a transform step
+   for html2canvas to get wrong. */
+body.lang-mm,
+body.lang-mm * {
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+/* Lead with an actual Myanmar face rather than falling back into it.
+   Inter carries no Myanmar glyphs, so listing it first made the browser
+   resolve every cluster by per-character fallback — another thing
+   html2canvas handles inconsistently. Both fonts here are Unicode
+   (not Zawgyi): Noto Sans Myanmar first, Padauk as backup. */
+body.lang-mm,
+body.lang-mm .invoice,
+body.lang-mm .pf-history-title,
+body.lang-mm .cmp-title {
+  font-family: 'Noto Sans Myanmar', 'Padauk', 'Inter', sans-serif;
+}
+
 body.lang-mm { line-height: 1.55; }
 body.lang-mm .hero-label { font-size: 20px; }
 body.lang-mm .hero-price { font-size: 38px; }
@@ -1334,15 +1375,20 @@ body.lang-mm .ghost-btn { font-size: 17px; }
 body.lang-mm .clear-btn { font-size: 13px; }
 body.lang-mm .pricing-title { font-size: 22px; }
 body.lang-mm .auto-row { font-size: 16px; }
-body.lang-mm .invoice { line-height: 1.55; }
-body.lang-mm .invoice-brand-sub { font-size: 12px; letter-spacing: 0.6px; }
-body.lang-mm .invoice-date { font-size: 14px; }
-body.lang-mm .invoice-number { font-size: 12px; }
-body.lang-mm .inv-section-label { font-size: 12px; letter-spacing: 0.6px; }
-body.lang-mm .inv-row { font-size: 16px; }
-body.lang-mm .invoice-total-label { font-size: 12px; letter-spacing: 0.6px; }
-body.lang-mm .invoice-total-value { font-size: 25px; }
-body.lang-mm .invoice-footer { font-size: 13px; }
+/* Myanmar needs more vertical room than Latin at the same size: the stacked
+   medials and vowel signs sit above and below the baseline. */
+body.lang-mm .invoice { line-height: 1.7; }
+body.lang-mm .invoice-brand-sub { font-size: 14px; }
+body.lang-mm .invoice-date { font-size: 16px; }
+body.lang-mm .invoice-number { font-size: 15px; }
+body.lang-mm .inv-section-label { font-size: 15px; }
+body.lang-mm .inv-row { font-size: 18px; padding: 11px 0; gap: 10px; }
+/* Myanmar labels are wider than their English equivalents, so give the
+   receipt a little more usable width instead of shrinking the type. */
+body.lang-mm .invoice { padding-left: 22px; padding-right: 22px; }
+body.lang-mm .invoice-total-label { font-size: 14px; }
+body.lang-mm .invoice-total-value { font-size: 30px; }
+body.lang-mm .invoice-footer { font-size: 15px; }
 
 @media (max-width: 380px) {
   .hero-price { font-size: 28px; }

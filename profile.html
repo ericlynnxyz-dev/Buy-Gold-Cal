@@ -308,7 +308,8 @@
       // customer cannot check how the total was reached.
       const goldRows = [
         [it('quality'), c.goldPurity ? it(PURITY_KEY[c.goldPurity] || 'quality16') : '—'],
-        [it('pricePerK'), invFmt(c.goldPricePerK) + ' ' + it('mmk') + ' ' + it('perK')],
+        // No "/ K" suffix — the row label already says "per K".
+        [it('pricePerK'), invFmt(c.goldPricePerK) + ' ' + it('mmk')],
       ];
       if (c.goldKyat != null) {
         goldRows.push([it('goldWeight'), localizeNum(Number(c.goldKyat).toFixed(4).replace(/\.?0+$/, '')) + ' ' + it('unitK')]);
@@ -373,7 +374,9 @@
     $('pfInvDownload').addEventListener('click', async () => {
       const node = $('pfInvoiceCanvas');
       try {
-        const canvas = await html2canvas(node, { backgroundColor:'#ffffff', scale:2, useCORS:true });
+        // Fonts must be resolved before drawing, or Myanmar glyphs export blank.
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        const canvas = await html2canvas(node, { backgroundColor:'#ffffff', scale:3, useCORS:true });
         const link = document.createElement('a');
         const receiptNum = ($('pfInvNumber').textContent || '').replace('#', '').trim();
         const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
