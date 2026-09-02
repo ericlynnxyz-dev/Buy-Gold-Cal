@@ -1182,7 +1182,10 @@ function buildCalculationData() {
   }
   if (itemType.value === 'gold-diamond') {
     data.diamondWeight = r.diamondWeight;
-    data.diamondPrice  = r.diamondPrice;
+    // The configured rate, not the computed one. r.diamondPrice is 0 in
+    // Fixed mode, and storing that zero used to wipe the price book when
+    // the invoice was later opened for editing.
+    data.diamondPrice  = book().diamondPrice;
     data.diamondCost   = r.diamondCost;
     data.diamondCostFixed = parseNum(diamondCostInput.value);
   }
@@ -1284,8 +1287,11 @@ window.__editingInvoiceNo = window.__editingInvoiceNo || null;
   // on it, so re-saving cannot silently reprice it at today's numbers.
   const pk = Number(d.goldPricePerK) || 0;
   book().goldPrice16K = baseFromQuality(pk, qIdx);
-  if (d.gemPrice != null) book().gemPrice = Number(d.gemPrice) || 0;
-  if (d.diamondPrice != null) book().diamondPrice = Number(d.diamondPrice) || 0;
+  // Only adopt a stone rate the invoice actually carries. A missing or zero
+  // value means the invoice was priced some other way (Fixed cost, or saved
+  // before these were stored) — it must not clear the configured price.
+  if (Number(d.gemPrice) > 0) book().gemPrice = Number(d.gemPrice);
+  if (Number(d.diamondPrice) > 0) book().diamondPrice = Number(d.diamondPrice);
 
   const setNum = (el, v) => { if (el) el.value = Number(v) ? String(Number(v)) : ''; };
   const setMoney = (el, v) => { if (el) el.value = Number(v) ? Number(v).toLocaleString('en-US') : ''; };

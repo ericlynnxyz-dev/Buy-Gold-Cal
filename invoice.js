@@ -33,7 +33,6 @@ function escapeHtml(s) {
 function toKyat(K, P, Y) { return parseNum(K) + parseNum(P) / 16 + parseNum(Y) / 128; }
 function diamondToKyat(x) { return (parseNum(x) * 1.25) / 128; }
 
-const PURITY_RATIO = [1, 16 / 17, 128 / 140, 16 / 18, 16 / 20];
 const PURITY_NAME  = ['16K', '15K', '14.5K', '14K', '12K'];
 
 function fmtWeight(K, P, Y) {
@@ -50,6 +49,7 @@ let source  = 'manual';     // 'manual' | 'saved'
 let calcs   = [];           // saved calculations for the signed-in user
 let pickedInvoiceNo = '';   // number carried over from a chosen saved calculation
 let totalEdited = false;    // has the user typed their own total?
+let savedDiverged = false;  // saved figures loaded, then a weight/price changed
 
 // ---------- inputs ----------
 const F = {
@@ -94,7 +94,17 @@ function refreshTotal() {
     const v = computeTotal();
     F.total.value = v ? fmt(v) : '';
   }
+  updateDivergeNote();
   renderPaper();
+}
+
+// The total taken from a saved calculation includes stone value and any
+// crafting fee, neither of which this page holds a price for. So it is kept
+// as-is when the weights are edited — and flagged, so the mismatch is never
+// silent.
+function updateDivergeNote() {
+  const note = $('divergeNote');
+  if (note) note.hidden = !(source === 'saved' && savedDiverged);
 }
 
 // ---------- invoice number ----------
@@ -219,9 +229,11 @@ function applySaved(idx) {
   // wins over anything this page could recompute from its own fields.
   F.total.value = c.itemCost ? fmt(c.itemCost) : '';
   totalEdited = true;
+  savedDiverged = false;
   pickedInvoiceNo = c.invoiceNo ? String(c.invoiceNo) : '';
   F.invNo.value = pickedInvoiceNo || nextInvoiceNo();
   applyVisibility();
+  updateDivergeNote();   // a freshly loaded record is by definition not diverged
   renderPaper();
 }
 
@@ -230,6 +242,7 @@ document.querySelectorAll('.txn-mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     txnMode = (btn.dataset.txn === 'purchase') ? 'purchase' : 'sale';
     pickedInvoiceNo = '';
+    savedDiverged = false;
     if (source === 'saved') fillSavedPicker(); else F.invNo.value = nextInvoiceNo();
     applyVisibility();
     refreshTotal();
@@ -239,19 +252,26 @@ document.querySelectorAll('.cost-mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     source = (btn.dataset.src === 'saved') ? 'saved' : 'manual';
     if (source === 'saved') { fillSavedPicker(); }
-    else { pickedInvoiceNo = ''; totalEdited = false; F.invNo.value = nextInvoiceNo(); }
+    else { pickedInvoiceNo = ''; totalEdited = false; savedDiverged = false; F.invNo.value = nextInvoiceNo(); }
     applyVisibility();
     refreshTotal();
   });
 });
 $('savedPick').addEventListener('change', (e) => applySaved(Number(e.target.value)));
 
-F.type.addEventListener('change', () => { applyVisibility(); refreshTotal(); });
+// Editing any figure that feeds the total marks a loaded record as diverged.
+const markDiverged = () => { if (source === 'saved') savedDiverged = true; };
+F.type.addEventListener('change', () => { markDiverged(); applyVisibility(); refreshTotal(); });
 [F.iwK, F.iwP, F.iwY, F.lwK, F.lwP, F.lwY, F.gwK, F.gwP, F.gwY, F.dia, F.gold, F.purity]
-  .forEach(el => el.addEventListener('input', refreshTotal));
-F.purity.addEventListener('change', refreshTotal);
+  .forEach(el => el.addEventListener('input', () => { markDiverged(); refreshTotal(); }));
+F.purity.addEventListener('change', () => { markDiverged(); refreshTotal(); });
 // Typing a total by hand takes over; clearing it hands control back.
-F.total.addEventListener('input', () => { totalEdited = F.total.value.trim() !== ''; renderPaper(); });
+// Clearing the field hands control back to the automatic figure at once —
+// re-rendering alone left it stubbornly blank until some other input fired.
+F.total.addEventListener('input', () => {
+  totalEdited = F.total.value.trim() !== '';
+  if (totalEdited) renderPaper(); else refreshTotal();
+});
 [F.name, F.cName, F.cPhone, F.cAddress, F.invNo].forEach(el => el.addEventListener('input', renderPaper));
 
 // ---------- export / print ----------
