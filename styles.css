@@ -1416,6 +1416,102 @@ body.lang-mm .txn-badge { font-size: 12px; }
   background: var(--input-bg-focus);
 }
 
+/* ============ PRINT INVOICE PAGE ============ */
+.inv-toggle-wide { display: flex; width: 100%; }
+.inv-toggle-wide .txn-mode-btn { flex: 1; min-width: 0; }
+.inv-hint {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.inv-actions { display: flex; gap: 10px; }
+.inv-actions .ghost-btn,
+.inv-actions .primary-btn { flex: 1; }
+/* The preview can be taller than the card; let it scroll rather than clip. */
+.inv-preview-scroll {
+  display: flex;
+  justify-content: center;
+  padding: 14px 0 4px;
+  overflow-x: auto;
+}
+
+/* The paper itself: exactly 2in wide, length grows with the content. */
+.print-invoice {
+  width: 2in;
+  flex: 0 0 auto;
+  background: #ffffff;
+  color: #1a1a1a;
+  padding: 0.16in 0.14in;
+  box-sizing: border-box;
+  box-shadow: 0 8px 28px rgba(20, 30, 60, 0.22);
+  font-size: 7.5pt;
+  line-height: 1.5;
+}
+.pi-head { text-align: center; border-bottom: 1px solid #d8d8d8; padding-bottom: 7px; margin-bottom: 8px; }
+.pi-brand { font-size: 12pt; font-weight: 800; letter-spacing: -0.2px; line-height: 1.15; }
+.pi-sub { font-size: 6.5pt; font-weight: 700; letter-spacing: 1.1px; color: #8a8a8a; margin-top: 2px; }
+.pi-meta {
+  display: flex; justify-content: space-between; gap: 6px;
+  font-size: 6.5pt; color: #7a7a7a; margin-top: 5px;
+}
+.pi-row {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 3.5px 0; border-bottom: 1px solid #f1f1f1;
+}
+.pi-row:last-child { border-bottom: none; }
+.pi-row span:first-child { color: #565656; white-space: nowrap; }
+.pi-row span:last-child { font-weight: 700; text-align: right; word-break: keep-all; }
+/* Rule between the customer block and the goods. */
+.pi-row-sep { border-top: 1px solid #d8d8d8; margin-top: 4px; padding-top: 6px; }
+/* Stacked, not side by side: at 2in wide a label and a 7-figure sum cannot
+   share a line without both wrapping. */
+.pi-total {
+  background: #1a1a1a; color: #fff;
+  border-radius: 5px; padding: 7px 9px; margin-top: 9px;
+  text-align: center;
+}
+.pi-total span {
+  display: block;
+  font-size: 6pt; font-weight: 700; letter-spacing: 0.8px;
+  color: rgba(255,255,255,0.72); margin-bottom: 1px;
+}
+.pi-total strong { display: block; font-size: 10pt; font-weight: 800; white-space: nowrap; }
+.pi-foot {
+  text-align: center; font-size: 6.5pt; color: #a2a2a2;
+  border-top: 1px solid #ececec; margin-top: 8px; padding-top: 6px;
+}
+/* Myanmar needs a little more room per line here too. */
+body.lang-mm .print-invoice { font-size: 8pt; line-height: 1.7; }
+body.lang-mm .pi-sub,
+body.lang-mm .pi-meta,
+body.lang-mm .pi-total span,
+body.lang-mm .pi-foot { font-size: 7.5pt; }
+
+/* Printing: 2in wide, length decided by the content. Everything except the
+   paper is hidden, and the paper loses its shadow and preview margins. */
+@media print {
+  @page { size: 2in auto; margin: 0; }
+  body.printing { background: #fff !important; padding: 0 !important; display: block !important; }
+  /* Only the preview card reaches the paper. */
+  body.printing .pf-wrap > *:not(#previewCard),
+  body.printing .bottom-nav,
+  body.printing .opt-modal { display: none !important; }
+  body.printing .pf-wrap { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+  /* Strip the card chrome so only the invoice itself shows. */
+  body.printing #previewCard {
+    padding: 0 !important; margin: 0 !important;
+    background: none !important; box-shadow: none !important; border: none !important;
+  }
+  body.printing #previewCard .pricing-section-title { display: none !important; }
+  body.printing .inv-preview-scroll { padding: 0 !important; overflow: visible !important; display: block !important; }
+  body.printing .print-invoice {
+    box-shadow: none !important;
+    width: 2in !important;
+    margin: 0 !important;
+  }
+}
+
 /* ============ MYANMAR LANGUAGE — bigger + clearer ============ */
 
 /* Myanmar is a complex script: a consonant plus its medials and vowel signs

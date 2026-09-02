@@ -1042,14 +1042,18 @@ const navHome = $('navHome');
 const navPricingBtn = $('navPricing');
 const navProfile = $('navProfile');
 const navCompare = $('navCompare');
+const navInvoice = $('navInvoice');
 
 function setActiveNav(btn) {
-  [navHome, navPricingBtn, navProfile, navCompare].forEach(b => b && b.classList.remove('active'));
+  [navHome, navPricingBtn, navProfile, navCompare, navInvoice].forEach(b => b && b.classList.remove('active'));
   btn.classList.add('active');
 }
 
 if (navCompare) {
   navCompare.addEventListener('click', () => { window.location.href = 'compare.html'; });
+}
+if (navInvoice) {
+  navInvoice.addEventListener('click', () => { window.location.href = 'invoice.html'; });
 }
 
 navHome.addEventListener('click', () => {
@@ -1079,6 +1083,7 @@ if ($('optEditPrice')) $('optEditPrice').addEventListener('click', () => { close
 if ($('optHistory'))  $('optHistory').addEventListener('click', () => { window.location.href = 'profile.html'; });
 if ($('optEditInfo')) $('optEditInfo').addEventListener('click', () => { window.location.href = 'profile.html#edit'; });
 if ($('optCompare'))  $('optCompare').addEventListener('click', () => { window.location.href = 'compare.html'; });
+if ($('optPrintInvoice')) $('optPrintInvoice').addEventListener('click', () => { window.location.href = 'invoice.html'; });
 
 // ---------- Background: drift + scroll parallax ----------
 const orbs = Array.from(document.querySelectorAll('.orb'));

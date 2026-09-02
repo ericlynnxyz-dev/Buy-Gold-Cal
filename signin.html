@@ -261,6 +261,8 @@
     document.getElementById('optHistory').addEventListener('click', () => { window.location.href = 'profile.html'; });
     document.getElementById('optEditInfo').addEventListener('click', () => { window.location.href = 'profile.html#edit'; });
     document.getElementById('optCompare').addEventListener('click', () => { window.location.href = 'compare.html'; });
+    var oPI = document.getElementById('optPrintInvoice');
+    if (oPI) oPI.addEventListener('click', function () { window.location.href = 'invoice.html'; });
     function markLang(l) { document.querySelectorAll('.opt-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l)); }
     function applyPageLang(l) { setLang(l); applyLangClass(l); translateStatic(l); markLang(l); refreshAuthTexts(); }
     document.querySelectorAll('.opt-lang-btn').forEach(b => {

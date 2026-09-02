@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Print Invoice · Buy Gold Cal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Myanmar:wght@400;500;600;700;800&family=Padauk:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="auth.css" />
+<link rel="stylesheet" href="profile.css" />
+</head>
+<body class="theme-light profile-dashboard">
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('goldCalcTheme');
+      if (savedTheme === 'dark') document.body.classList.add('theme-dark');
+    } catch (e) {}
+  </script>
+
+  <div class="pf-wrap" id="pageWrap">
+
+    <div class="pf-topbar">
+      <button class="hero-icon-btn" id="optionsToggle" type="button" aria-label="Menu" data-i18n-aria="ariaMenu">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="17" x2="18" y2="17"/></svg>
+      </button>
+    </div>
+
+    <div class="cmp-title" data-i18n="printInvoiceTitle">PRINT INVOICE</div>
+
+    <!-- Which invoice, and where the numbers come from -->
+    <section class="card">
+      <div class="txn-mode-toggle inv-toggle-wide" role="group" data-i18n-aria="ariaTxnMode" aria-label="Purchase or sale">
+        <button type="button" id="txnPurchase" class="txn-mode-btn" data-txn="purchase" data-i18n="modePurchase">Purchase</button>
+        <button type="button" id="txnSale" class="txn-mode-btn active" data-txn="sale" data-i18n="modeSale">Sale</button>
+      </div>
+
+      <div class="field weight-field" style="margin-top:16px;">
+        <label data-i18n="dataSource">Data Source</label>
+        <div class="cost-mode-toggle" role="group" data-i18n-aria="dataSource" aria-label="Data source">
+          <button type="button" id="srcManual" class="cost-mode-btn active" data-src="manual" data-i18n="srcManual">Manual</button>
+          <button type="button" id="srcSaved" class="cost-mode-btn" data-src="saved" data-i18n="srcSaved">From Saved</button>
+        </div>
+      </div>
+
+      <div class="field field-horizontal" id="savedPickRow" hidden>
+        <label for="savedPick" data-i18n="pickSaved">Saved calculation</label>
+        <div class="single-input">
+          <select id="savedPick" class="purity-select" style="width:100%;"></select>
+        </div>
+      </div>
+      <p class="inv-hint" id="savedHint" hidden data-i18n="noSavedForMode">No saved calculations for this mode.</p>
+
+      <!-- Pre-filled with the next free number in this mode's daily sequence,
+           and editable, since nothing is written back to history from here. -->
+      <div class="field field-horizontal">
+        <label for="invNoInput" data-i18n="invoiceNoLabel">Invoice No.</label>
+        <div class="single-input"><input type="text" id="invNoInput" maxlength="20" /></div>
+      </div>
+    </section>
+
+    <!-- Customer: always typed in, in both modes -->
+    <section class="card">
+      <div class="pricing-section-title" data-i18n="customerHeading">CUSTOMER</div>
+      <div class="field field-horizontal">
+        <label for="custName" data-i18n="custName">Customer Name</label>
+        <div class="single-input"><input type="text" id="custName" maxlength="60" /></div>
+      </div>
+      <div class="field field-horizontal">
+        <label for="custPhone" data-i18n="phoneLabel">Phone number</label>
+        <div class="single-input"><input type="text" id="custPhone" inputmode="tel" maxlength="30" /></div>
+      </div>
+      <div class="field field-horizontal">
+        <label for="custAddress" data-i18n="custAddress">Address</label>
+        <div class="single-input"><input type="text" id="custAddress" maxlength="120" /></div>
+      </div>
+    </section>
+
+    <!-- Item details -->
+    <section class="card">
+      <div class="pricing-section-title" data-i18n="itemDetailsHeading">ITEM DETAILS</div>
+
+      <!-- Typed in even when the rest is auto-filled, so the printed name can
+           be more specific than the calculator's fixed list. -->
+      <div class="field field-horizontal">
+        <label for="invItemName" data-i18n="itemNameLabel">Item Name</label>
+        <div class="single-input"><input type="text" id="invItemName" maxlength="60" /></div>
+      </div>
+
+      <div class="field field-horizontal">
+        <label for="invItemType" data-i18n="itemTypePlaceholder">Item Type</label>
+        <div class="single-input">
+          <select id="invItemType" class="purity-select" style="width:100%;">
+            <option value="gold" data-i18n="typeGold">Gold</option>
+            <option value="gold-gem" data-i18n="typeGoldGem">Gold + Gem</option>
+            <option value="gold-diamond" data-i18n="typeGoldDiamond">Gold + Diamond</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field weight-field">
+        <label data-i18n="itemWeight">Item Weight</label>
+        <div class="weight-row">
+          <div class="weight-col"><span class="unit-label" data-i18n="unitK">K</span><input type="text" inputmode="decimal" id="invIwK" class="weight-input" /></div>
+          <div class="weight-col"><span class="unit-label" data-i18n="unitP">P</span><input type="text" inputmode="decimal" id="invIwP" class="weight-input" /></div>
+          <div class="weight-col"><span class="unit-label" data-i18n="unitY">Y</span><input type="text" inputmode="decimal" id="invIwY" class="weight-input" /></div>
+        </div>
+      </div>
+
+      <!-- Sale only: a purchase has no loss weight -->
+      <div class="field weight-field" id="invLossRow">
+        <label data-i18n="lossWeight">Loss Weight</label>
+        <div class="weight-row">
+          <div class="weight-col"><span class="unit-label" data-i18n="unitK">K</span><input type="text" inputmode="decimal" id="invLwK" class="weight-input" /></div>
+          <div class="weight-col"><span class="unit-label" data-i18n="unitP">P</span><input type="text" inputmode="decimal" id="invLwP" class="weight-input" /></div>
+          <div class="weight-col"><span class="unit-label" data-i18n="unitY">Y</span><input type="text" inputmode="decimal" id="invLwY" class="weight-input" /></div>
+        </div>
+      </div>
+
+      <!-- Shown only for Gold + Gem -->
+      <div class="field weight-field" id="invGemRow" hidden>
+        <label data-i18n="gemWeight">Gem Weight</label>
+        <div class="weight-row">
+          <div class="weight-col"><span class="unit-label" data-i18n="unitK">K</span><input type="text" inputmode="decimal" id="invGwK" class="weight-input" /></div>
+          <div class="weight-col"><span class="unit-label" data-i18n="unitP">P</span><input type="text" inputmode="decimal" id="invGwP" class="weight-input" /></div>
+          <div class="weight-col"><span class="unit-label" data-i18n="unitY">Y</span><input type="text" inputmode="decimal" id="invGwY" class="weight-input" /></div>
+        </div>
+      </div>
+
+      <!-- Shown only for Gold + Diamond -->
+      <div class="field field-horizontal" id="invDiaRow" hidden>
+        <label for="invDiaWeight" data-i18n="diamondWeight">Diamond Weight</label>
+        <div class="single-input"><input type="text" inputmode="decimal" id="invDiaWeight" /></div>
+      </div>
+
+      <div class="field field-horizontal">
+        <label for="invPurity" data-i18n="goldPurity">Gold Purity</label>
+        <div class="single-input">
+          <select id="invPurity" class="purity-select" style="width:100%;">
+            <option value="0" data-i18n="quality16">16K</option>
+            <option value="1" data-i18n="quality15">15K</option>
+            <option value="2" data-i18n="quality145">14.5K</option>
+            <option value="3" data-i18n="quality14">14K</option>
+            <option value="4" data-i18n="quality12">12K</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field field-horizontal">
+        <label for="invGoldPrice" data-i18n="goldPrice">Gold Price</label>
+        <div class="single-input"><input type="text" inputmode="numeric" id="invGoldPrice" placeholder="0" /></div>
+      </div>
+
+      <div class="field field-horizontal">
+        <label for="invTotal" data-i18n="totalCost">Total Cost</label>
+        <div class="single-input"><input type="text" inputmode="numeric" id="invTotalInput" placeholder="0" /></div>
+      </div>
+      <p class="inv-hint" data-i18n="totalHint">Filled in from the weights and gold price. Type over it to use a different figure.</p>
+    </section>
+
+    <!-- Preview. This is the only element that reaches the printer. -->
+    <section class="card" id="previewCard">
+      <div class="pricing-section-title" data-i18n="previewHeading">PREVIEW</div>
+      <div class="inv-preview-scroll">
+        <div id="invPaper" class="print-invoice">
+          <div class="pi-head">
+            <div class="pi-brand">Buy Gold Cal</div>
+            <div class="pi-sub" id="piKind">SALES INVOICE</div>
+            <div class="pi-meta">
+              <span id="piDate">—</span>
+              <span id="piNumber"></span>
+            </div>
+          </div>
+          <div class="pi-body" id="piBody"></div>
+          <div class="pi-total">
+            <span id="piTotalLabel">TOTAL</span>
+            <strong id="piTotalValue">0 MMK</strong>
+          </div>
+          <div class="pi-foot" id="piFoot">Thank you</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Actions -->
+    <section class="card">
+      <div class="pricing-section-title" data-i18n="actionsHeading">ACTIONS</div>
+      <div class="inv-actions">
+        <button id="exportBtn" class="ghost-btn" type="button">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-i18n="exportInvoice">Export Invoice</span>
+        </button>
+        <button id="printBtn" class="primary-btn" type="button">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          <span data-i18n="printInvoiceBtn">Print Invoice</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Options menu -->
+  <div id="optionsMenu" class="opt-modal hidden">
+    <div class="opt-backdrop" id="optBackdrop"></div>
+    <div class="opt-card">
+      <button class="opt-item" id="optEditPrice" type="button" data-i18n="optEditPrice">Edit Gold Price</button>
+      <button class="opt-item" id="optHistory" type="button" data-i18n="optHistory">My History</button>
+      <button class="opt-item" id="optEditInfo" type="button" data-i18n="optEditInfo">Edit My Info</button>
+      <button class="opt-item" id="optCompare" type="button" data-i18n="optCompare">Compare Mode</button>
+      <button class="opt-item" id="optPrintInvoice" type="button" data-i18n="optPrintInvoice">Print Invoice</button>
+      <div class="opt-lang">
+        <button class="opt-lang-btn" data-lang="en">ENG</button>
+        <button class="opt-lang-btn" data-lang="mm">မြန်မာ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-item" id="navPricing" type="button" data-i18n-aria="ariaPricing" aria-label="Pricing">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M14.8 9.3c-.4-.8-1.4-1.3-2.8-1.3-1.7 0-2.8.8-2.8 2 0 2.8 5.8 1.2 5.8 4 0 1.2-1.1 2-2.8 2-1.5 0-2.5-.5-2.9-1.4"/><path d="M12 6.3v11.4"/></svg>
+    </button>
+    <button class="nav-item" id="navHome" type="button" data-i18n-aria="ariaCalculator" aria-label="Calculator">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2V9.5z"/></svg>
+    </button>
+    <button class="nav-item" id="navCompare" type="button" data-i18n-aria="optCompare" aria-label="Compare">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 2 21 6 17 10"/><line x1="3" y1="6" x2="21" y2="6"/><polyline points="7 14 3 18 7 22"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+    </button>
+    <button class="nav-item active" id="navInvoice" type="button" data-i18n-aria="printInvoiceTitle" aria-label="Print Invoice" aria-current="page">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    </button>
+    <button class="nav-item" id="navProfile" type="button" data-i18n-aria="ariaProfile" aria-label="Profile">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+  </nav>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="auth-utils.js"></script>
+  <script type="module" src="invoice.js"></script>
+</body>
+</html>
