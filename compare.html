@@ -164,8 +164,10 @@
         if (c.invoiceNo) { refs[c.id] = String(c.invoiceNo); return; }
         const d = toDate(c.timestamp) || new Date();
         const key = String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear()).slice(-2);
-        byDay[key] = (byDay[key] || 0) + 1;
-        refs[c.id] = key + String(byDay[key]).padStart(4,'0');
+        // Sales and purchases run separate sequences; key by mode too.
+        const sk = key + '|' + (c.txnMode === 'purchase' ? 'p' : 's');
+        byDay[sk] = (byDay[sk] || 0) + 1;
+        refs[c.id] = key + String(byDay[sk]).padStart(4,'0');
       });
       return refs;
     }
@@ -248,7 +250,7 @@
           <span class="cmp-circle ${isSel ? 'selected' : ''}"></span>
           <div class="pf-item ${isSel ? 'selected' : ''}">
             <div class="pf-item-type">${escapeHtml((c.itemNameValue ? nameOf(c) : typeLabel(c.itemType)).toUpperCase())}</div>
-            <div class="pf-item-num">${escapeHtml(refs[c.id] || '')}</div>
+            <div class="pf-item-num">${escapeHtml(refs[c.id] || '')}<span class="txn-badge ${c.txnMode === 'purchase' ? 'buy' : 'sell'}">${escapeHtml(tr(c.txnMode === 'purchase' ? 'badgePurchase' : 'badgeSale'))}</span></div>
             <div class="pf-item-weight">${escapeHtml(weightStr(c.weightK, c.weightP, c.weightY) || '0')}</div>
             <div class="pf-item-cost">${escapeHtml(fmtMmk(c.itemCost))}</div>
           </div>

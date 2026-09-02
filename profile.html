@@ -232,9 +232,12 @@
         const dd = String(d.getDate()).padStart(2, '0');
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const yy = String(d.getFullYear()).slice(-2);
+        // Sales and purchases run separate sequences, so key the legacy
+        // counter by mode too. Documents with no mode are old sales.
         const key = `${dd}${mm}${yy}`;
-        seqByDay[key] = (seqByDay[key] || 0) + 1;
-        refById[c.id] = key + String(seqByDay[key]).padStart(4, '0');
+        const sk = key + '|' + (c.txnMode === 'purchase' ? 'p' : 's');
+        seqByDay[sk] = (seqByDay[sk] || 0) + 1;
+        refById[c.id] = key + String(seqByDay[sk]).padStart(4, '0');
       });
       return refById;
     }
@@ -277,7 +280,8 @@
 
     function buildInvoice(c, ref) {
       const d = toDate(c.timestamp) || new Date();
-      $('pfInvReceiptLabel').textContent = it('purchaseReceipt');
+      const isBuy = (c.txnMode === 'purchase');
+      $('pfInvReceiptLabel').textContent = isBuy ? it('purchaseReceipt') : it('salesReceipt');
       $('pfInvTotalLabel').textContent = it('totalItemCost');
       $('pfInvDownloadLabel').textContent = it('saveJpeg');
       $('pfInvDate').textContent = d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
@@ -297,7 +301,7 @@
       const weightRows = [
         [it('itemWeight'), invWeight(c.weightK, c.weightP, c.weightY)]
       ];
-      if (Number(c.lossWeightK) || Number(c.lossWeightP) || Number(c.lossWeightY)) {
+      if (!isBuy && (Number(c.lossWeightK) || Number(c.lossWeightP) || Number(c.lossWeightY))) {
         weightRows.push([it('lossWeight'), invWeight(c.lossWeightK, c.lossWeightP, c.lossWeightY)]);
       }
       if (c.itemType === 'gold-gem') weightRows.push([it('gemWeight'), invWeight(c.gemWeightK, c.gemWeightP, c.gemWeightY)]);
@@ -332,8 +336,10 @@
         sections.push({ label: it('secDiamond'), rows: dRows });
       }
 
-      // FEES
-      sections.push({ label: it('secFees'), rows: [[it('craftingFee'), money(c.craftingFee)]] });
+      // FEES — purchases have none.
+      if (!isBuy) {
+        sections.push({ label: it('secFees'), rows: [[it('craftingFee'), money(c.craftingFee)]] });
+      }
 
       $('pfInvoiceBody').innerHTML = sections.map(sec => {
         const rowsHtml = sec.rows.map(([k, v]) =>
@@ -403,7 +409,7 @@
         card.setAttribute('tabindex', '0');
         card.innerHTML = `
           <div class="pf-item-type">${escapeHtml(savedItemName(c) || typeLabel(c.itemType))}</div>
-          <div class="pf-item-num">${escapeHtml(refs[c.id] || '')}</div>
+          <div class="pf-item-num">${escapeHtml(refs[c.id] || '')}<span class="txn-badge ${c.txnMode === 'purchase' ? 'buy' : 'sell'}">${escapeHtml(it(c.txnMode === 'purchase' ? 'badgePurchase' : 'badgeSale'))}</span></div>
           <div class="pf-item-weight">${escapeHtml(fmtWeight(c.weightK, c.weightP, c.weightY))}</div>
           <div class="pf-item-cost">${escapeHtml(fmtMmk(c.itemCost))}</div>
         `;

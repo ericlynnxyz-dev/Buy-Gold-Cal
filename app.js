@@ -4,11 +4,27 @@ import { tr, getLang, setLang, applyLangClass, translateStatic, QUALITY_KEYS } f
 const t = tr;
 
 // ---------- State ----------
+// Two independent price books. A shop buys below the rate it sells at, so
+// Sale and Purchase each carry their own gold, gem and diamond prices.
+//
+// goldPrice16K is always the 16K-equivalent rate, whatever purity the price
+// was actually typed at on the Pricing screen. Normalising on the way in
+// keeps one derivation rule for everything downstream; basePurity only
+// remembers which purity the user typed into, so the screen can restore it.
+function emptyPriceBook() {
+  return { goldPrice16K: 0, basePurity: 0, gemPrice: 0, diamondPrice: 0 };
+}
+
 const state = {
-  goldPrice16K: 0,
-  gemPrice: 0,
-  qualityIndex: null,   // null = not selected yet (required field)
+  txnMode: 'sale',        // 'sale' | 'purchase' — which price book is live
+  sale: emptyPriceBook(),
+  purchase: emptyPriceBook(),
+  qualityIndex: null,     // null = not selected yet (required field)
 };
+
+// The price book for the mode currently selected.
+function book() { return state[state.txnMode]; }
+const isPurchase = () => state.txnMode === 'purchase';
 
 let currentLang = getLang();
 function localizeNum(s) {
@@ -37,13 +53,31 @@ function escapeHtml(s) {
 }
 
 // ---------- Persistence ----------
+function readBook(obj) {
+  const b = emptyPriceBook();
+  if (!obj) return b;
+  b.goldPrice16K = Number(obj.goldPrice16K) || 0;
+  b.basePurity   = Number(obj.basePurity) || 0;
+  b.gemPrice     = Number(obj.gemPrice) || 0;
+  b.diamondPrice = Number(obj.diamondPrice) || 0;
+  return b;
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem('goldCalcState');
     if (raw) {
       const obj = JSON.parse(raw);
-      state.goldPrice16K = obj.goldPrice16K || 0;
-      state.gemPrice = obj.gemPrice || 0;
+      if (obj.sale || obj.purchase) {
+        state.sale = readBook(obj.sale);
+        state.purchase = readBook(obj.purchase);
+      } else {
+        // Saved before Purchase mode existed: the single set of prices was
+        // the selling price book. Purchase starts empty.
+        state.sale = readBook(obj);
+        state.purchase = emptyPriceBook();
+      }
+      if (obj.txnMode === 'purchase' || obj.txnMode === 'sale') state.txnMode = obj.txnMode;
       // qualityIndex intentionally NOT restored — Gold Purity is a required field that must be re-selected.
       if (obj.itemNameValue) itemNameValue = obj.itemNameValue;
       if (obj.costMode === 'fixed' || obj.costMode === 'calculate') costMode = obj.costMode;
@@ -55,8 +89,9 @@ function loadState() {
 }
 function saveState() {
   const data = {
-    goldPrice16K: state.goldPrice16K,
-    gemPrice: state.gemPrice,
+    txnMode: state.txnMode,
+    sale: state.sale,
+    purchase: state.purchase,
     qualityIndex: state.qualityIndex,
     itemNameValue: (typeof itemNameValue !== 'undefined') ? itemNameValue : '',
     specificItemValue: (typeof specificItem !== 'undefined' && specificItem) ? specificItem.value : '',
@@ -66,18 +101,32 @@ function saveState() {
 }
 
 // ---------- Gold price formulas (per Kyat) ----------
+// Each purity is a fixed fraction of the 16K rate: 16 / (32 - q).
+// Holding them as ratios (rather than as a switch) means the same table
+// also inverts, which is what lets a price be entered at ANY purity and the
+// rest derived from it.
+const PURITY_RATIO = [
+  1,          // 16K
+  16 / 17,    // 15K
+  128 / 140,  // 14.5K
+  16 / 18,    // 14K
+  16 / 20,    // 12K
+];
+
 function priceForQuality(x, qIdx) {
   if (!x) return 0;
-  switch (qIdx) {
-    case 0: return x;                 // 16K
-    case 1: return (x / 17) * 16;     // 15K
-    case 2: return (x / 140) * 128;   // 14.5K
-    case 3: return (x / 18) * 16;     // 14K
-    case 4: return (x / 20) * 16;     // 12K
-    // No purity chosen: there is no price yet. Never fall back to the 16K
-    // rate here — that used to quote 16K for an unselected item.
-    default: return 0;
-  }
+  const r = PURITY_RATIO[qIdx];
+  // No purity chosen: there is no price yet. Never fall back to the 16K
+  // rate here — that used to quote 16K for an unselected item.
+  return r ? x * r : 0;
+}
+
+// Given a price quoted at `qIdx`, what is the equivalent 16K rate?
+// Everything is stored as the 16K rate, so this runs on the way in.
+function baseFromQuality(price, qIdx) {
+  const r = PURITY_RATIO[qIdx];
+  if (!price || !r) return 0;
+  return price / r;
 }
 
 // ---------- Weight conversions ----------
@@ -105,13 +154,11 @@ const iwK = $('iwK'), iwP = $('iwP'), iwY = $('iwY');
 const lwK = $('lwK'), lwP = $('lwP'), lwY = $('lwY');
 const gwK = $('gwK'), gwP = $('gwP'), gwY = $('gwY');
 const diamondWeight = $('diamondWeight');
-const diamondPrice = $('diamondPrice');
 const craftingFee = $('craftingFee');
 
 // rows to toggle
 const gemRow = $('gemRow');
 const diamondRow = $('diamondRow');
-const diamondPriceRow = $('diamondPriceRow');
 
 // gem/diamond cost-mode toggle (calculate vs fixed)
 const costModeRow   = $('costModeRow');
@@ -129,11 +176,26 @@ const resultValue = $('resultValue');
 const summary = $('summary');
 const overWeightMsg = $('overWeightMsg');
 
-// pricing view
+// pricing view — one set of controls per price book
 const pricingView = $('pricingView');
 const mainView = $('mainView');
 const goldPriceInput = $('goldPriceInput');
 const gemPriceInput = $('gemPriceInput');
+const diamondPriceInput = $('diamondPriceInput');
+const salePurity = $('salePurity');
+const buyGoldPriceInput = $('buyGoldPriceInput');
+const buyGemPriceInput = $('buyGemPriceInput');
+const buyDiamondPriceInput = $('buyDiamondPriceInput');
+const buyPurity = $('buyPurity');
+
+// Which controls belong to which mode, so the wiring below is written once.
+const PRICE_FIELDS = {
+  sale:     { gold: goldPriceInput,    gem: gemPriceInput,    diamond: diamondPriceInput,    purity: salePurity, rows: 'saleAutoPrices' },
+  purchase: { gold: buyGoldPriceInput, gem: buyGemPriceInput, diamond: buyDiamondPriceInput, purity: buyPurity,  rows: 'buyAutoPrices' },
+};
+
+// transaction mode toggle (hero)
+const txnModeBtns = Array.from(document.querySelectorAll('.txn-mode-btn'));
 
 // invoice modal
 const invoiceModal = $('invoiceModal');
@@ -150,9 +212,12 @@ function attachCommaInput(el) {
   });
 }
 attachCommaInput(craftingFee);
-attachCommaInput(diamondPrice);
 attachCommaInput(goldPriceInput);
 attachCommaInput(gemPriceInput);
+attachCommaInput(diamondPriceInput);
+attachCommaInput(buyGoldPriceInput);
+attachCommaInput(buyGemPriceInput);
+attachCommaInput(buyDiamondPriceInput);
 attachCommaInput(gemCostInput);
 attachCommaInput(diamondCostInput);
 
@@ -180,28 +245,37 @@ function updatePriceDisplay() {
   // The hero shows the rate for the SELECTED purity. With no purity chosen
   // there is no rate to show, so display dashes rather than the 16K price —
   // showing 16K here made an unselected item look like a 16K quote.
-  if (state.qualityIndex == null && state.goldPrice16K > 0) {
+  if (state.qualityIndex == null && book().goldPrice16K > 0) {
     priceValue.textContent = '---';
     bump(priceValue);
     return;
   }
-  const price = priceForQuality(state.goldPrice16K, state.qualityIndex);
+  const price = priceForQuality(book().goldPrice16K, state.qualityIndex);
   // Hero price: no thousands separators
   priceValue.textContent = String(Math.round(isFinite(price) ? price : 0));
   bump(priceValue);
 }
 
+// The derived-price list under each gold price input. Which purities appear
+// depends on which one the price was typed at — the entered purity is the
+// input itself, so it is not repeated in the list below it.
+function renderAutoPrices(mode) {
+  const f = PRICE_FIELDS[mode];
+  const host = $(f.rows);
+  if (!host) return;
+  const b = state[mode];
+  const hasPrice = b.goldPrice16K > 0;
+  host.innerHTML = QUALITY_KEYS.map((key, q) => {
+    if (q === b.basePurity) return '';   // that one is the input
+    const val = fmt(priceForQuality(b.goldPrice16K, q));
+    return '<div class="auto-row"><span>' + escapeHtml(t(key)) + '</span>' +
+           '<strong class="' + (hasPrice ? '' : 'empty') + '">' + escapeHtml(val) + '</strong></div>';
+  }).join('');
+}
+
 function updatePricingAutoRows() {
-  const hasPrice = state.goldPrice16K > 0;
-  const setRow = (id, qIdx) => {
-    const el = $(id);
-    el.textContent = fmt(priceForQuality(state.goldPrice16K, qIdx));
-    el.classList.toggle('empty', !hasPrice);
-  };
-  setRow('p15', 1);
-  setRow('p145', 2);
-  setRow('p14', 3);
-  setRow('p12', 4);
+  renderAutoPrices('sale');
+  renderAutoPrices('purchase');
 }
 
 function toggleRowsForItemType() {
@@ -220,12 +294,43 @@ function toggleRowsForItemType() {
 
   // Fixed → direct cost input; Calculate → rate input (gem rate lives in Pricing view)
   gemCostRow.hidden     = !(isGem && fixed);
-  diamondPriceRow.hidden = !(isDiamond && !fixed);
   diamondCostRow.hidden  = !(isDiamond && fixed);
 
   if (modeCalculate) modeCalculate.classList.toggle('active', !fixed);
   if (modeFixed)     modeFixed.classList.toggle('active', fixed);
 }
+
+// ---------- Purchase / Sale ----------
+// Buying has no loss weight and no crafting fee, so those rows disappear
+// rather than sitting there ignored.
+function applyTxnMode() {
+  const purchase = isPurchase();
+  const lossRow = $('lossWeightRow');
+  const feeRow  = $('craftingFeeRow');
+  if (lossRow) lossRow.hidden = purchase;
+  if (feeRow)  feeRow.hidden  = purchase;
+
+  txnModeBtns.forEach(b => b.classList.toggle('active', (b.dataset.txn === 'purchase') === purchase));
+  document.body.classList.toggle('mode-purchase', purchase);
+}
+
+function setTxnMode(mode) {
+  const next = (mode === 'purchase') ? 'purchase' : 'sale';
+  if (next === state.txnMode) return;
+  state.txnMode = next;
+  // A half-finished invoice priced under the other book would be misleading,
+  // and its number belongs to the other sequence, so drop the edit link.
+  window.__editingInvoiceId = null;
+  window.__editingInvoiceNo = null;
+  applyTxnMode();
+  updatePriceDisplay();
+  saveState();
+  onAnyChange();
+}
+
+txnModeBtns.forEach(btn => {
+  btn.addEventListener('click', () => setTxnMode(btn.dataset.txn));
+});
 
 // Switch between Calculate / Fixed (weights are preserved — only cost input method changes)
 [modeCalculate, modeFixed].forEach(btn => {
@@ -245,10 +350,14 @@ function diamondToKyat(x) {
 }
 
 function calculate() {
+  const purchase = isPurchase();
+  const prices = book();
+
   const itemKyat = toKyat(parseNum(iwK.value), parseNum(iwP.value), parseNum(iwY.value));
-  const lossKyat = toKyat(parseNum(lwK.value), parseNum(lwP.value), parseNum(lwY.value));
+  // Buying carries no loss weight — the shop weighs what is in front of it.
+  const lossKyat = purchase ? 0 : toKyat(parseNum(lwK.value), parseNum(lwP.value), parseNum(lwY.value));
   const totalKyat = itemKyat + lossKyat;
-  const goldPricePerK = priceForQuality(state.goldPrice16K, state.qualityIndex);
+  const goldPricePerK = priceForQuality(prices.goldPrice16K, state.qualityIndex);
 
   const fixed = (costMode === 'fixed');
 
@@ -257,9 +366,10 @@ function calculate() {
     const gK = parseNum(gwK.value), gP = parseNum(gwP.value), gY = parseNum(gwY.value);
     gemKyat = toKyat(gK, gP, gY);
     gemYt = toYati(gK, gP, gY);
-    gemCost = fixed ? parseNum(gemCostInput.value) : gemYt * state.gemPrice;
+    gemCost = fixed ? parseNum(gemCostInput.value) : gemYt * prices.gemPrice;
   }
 
+  // Diamond is priced from the current mode's price book, like gem.
   let dWeight = 0, dPrice = 0, diamondKyat = 0, diamondCost = 0;
   if (itemType.value === 'gold-diamond') {
     dWeight = parseNum(diamondWeight.value);
@@ -267,7 +377,7 @@ function calculate() {
     if (fixed) {
       diamondCost = parseNum(diamondCostInput.value);
     } else {
-      dPrice = parseNum(diamondPrice.value);
+      dPrice = prices.diamondPrice;
       diamondCost = dWeight * dPrice;
     }
   }
@@ -279,7 +389,8 @@ function calculate() {
   const overWeight = rawGoldKyat < 0;
   const goldKyat = overWeight ? 0 : rawGoldKyat;
   const goldCost = goldKyat * goldPricePerK;
-  const craftingFeeVal = parseNum(craftingFee.value);
+  // No crafting fee when buying: the shop is paying for metal and stones only.
+  const craftingFeeVal = purchase ? 0 : parseNum(craftingFee.value);
   const cost = goldCost + gemCost + diamondCost + craftingFeeVal;
 
   return {
@@ -311,7 +422,7 @@ function renderResult(r) {
 
   if (itemType.value === 'gold-gem') {
     rows.push([t('gemWeight'), localizeNum(r.gemYt.toFixed(2)) + ' ' + t('unitYt')]);
-    if (costMode !== 'fixed') rows.push([t('gemPrice'), fmt(state.gemPrice) + ' ' + t('mmk') + ' ' + t('perYt')]);
+    if (costMode !== 'fixed') rows.push([t('gemPrice'), fmt(book().gemPrice) + ' ' + t('mmk') + ' ' + t('perYt')]);
     rows.push([t('gemCost'), fmt(r.gemCost) + ' ' + t('mmk')]);
   }
   if (itemType.value === 'gold-diamond') {
@@ -531,8 +642,8 @@ function switchView(hideEl, showEl) {
   }, 180);
 }
 function openPricingView() {
-  goldPriceInput.value = state.goldPrice16K ? state.goldPrice16K.toLocaleString('en-US') : '';
-  gemPriceInput.value = state.gemPrice ? state.gemPrice.toLocaleString('en-US') : '';
+  fillPriceInputs('sale');
+  fillPriceInputs('purchase');
   updatePricingAutoRows();
   switchView(mainView, pricingView);
 }
@@ -541,17 +652,44 @@ function backToMain() {
 }
 $('backFromPricing').addEventListener('click', backToMain);
 
-goldPriceInput.addEventListener('input', () => {
-  state.goldPrice16K = parseNum(goldPriceInput.value);
-  updatePricingAutoRows();
-});
-gemPriceInput.addEventListener('input', () => {
-  state.gemPrice = parseNum(gemPriceInput.value);
+// Read one price book out of its inputs. The gold price is typed at
+// whichever purity the selector shows, so it is normalised to the 16K rate
+// before being stored.
+function readPriceInputs(mode) {
+  const f = PRICE_FIELDS[mode];
+  const b = state[mode];
+  b.basePurity   = Number(f.purity.value) || 0;
+  b.goldPrice16K = baseFromQuality(parseNum(f.gold.value), b.basePurity);
+  b.gemPrice     = parseNum(f.gem.value);
+  b.diamondPrice = parseNum(f.diamond.value);
+}
+
+// Put a stored book back into its inputs, showing the gold price at the
+// purity it was entered at.
+function fillPriceInputs(mode) {
+  const f = PRICE_FIELDS[mode];
+  const b = state[mode];
+  f.purity.value = String(b.basePurity || 0);
+  const shown = priceForQuality(b.goldPrice16K, b.basePurity);
+  f.gold.value    = shown ? Math.round(shown).toLocaleString('en-US') : '';
+  f.gem.value     = b.gemPrice ? b.gemPrice.toLocaleString('en-US') : '';
+  f.diamond.value = b.diamondPrice ? b.diamondPrice.toLocaleString('en-US') : '';
+}
+
+['sale', 'purchase'].forEach(mode => {
+  const f = PRICE_FIELDS[mode];
+  f.gold.addEventListener('input', () => { readPriceInputs(mode); renderAutoPrices(mode); });
+  f.gem.addEventListener('input', () => readPriceInputs(mode));
+  f.diamond.addEventListener('input', () => readPriceInputs(mode));
+  // Changing the purity re-reads the SAME typed number as a price at the new
+  // purity, rather than converting it — you picked the wrong label, not the
+  // wrong figure.
+  f.purity.addEventListener('change', () => { readPriceInputs(mode); renderAutoPrices(mode); });
 });
 
 $('savePricing').addEventListener('click', () => {
-  state.goldPrice16K = parseNum(goldPriceInput.value);
-  state.gemPrice = parseNum(gemPriceInput.value);
+  readPriceInputs('sale');
+  readPriceInputs('purchase');
   saveState();
   updatePriceDisplay();
   onAnyChange();
@@ -560,7 +698,7 @@ $('savePricing').addEventListener('click', () => {
 
 // ---------- Clear ----------
 $('clearBtn').addEventListener('click', () => {
-  [iwK, iwP, iwY, lwK, lwP, lwY, gwK, gwP, gwY, diamondWeight, diamondPrice, diamondCostInput, gemCostInput, craftingFee, specificItem]
+  [iwK, iwP, iwY, lwK, lwP, lwY, gwK, gwP, gwY, diamondWeight, diamondCostInput, gemCostInput, craftingFee, specificItem]
     .forEach(el => { el.value = ''; });
   itemNameValue = '';
   state.qualityIndex = null;
@@ -599,7 +737,7 @@ function blinkField(pillEl) {
 }
 function firstMissingRequired() {
   // Without a gold price every invoice totals to just the crafting fee.
-  if (!(state.goldPrice16K > 0))  return { label: t('pricingGoldLabel'), pill: navPricingBtn };
+  if (!(book().goldPrice16K > 0))  return { label: t('pricingGoldLabel'), pill: navPricingBtn };
   if (state.qualityIndex == null) return { label: t('goldPurity'), pill: purityPill };
   if (!itemType.value)            return { label: t('itemTypePlaceholder'), pill: itemTypePill };
   if (!itemNameValue)             return { label: t('itemNameLabel'), pill: itemNamePill };
@@ -660,7 +798,7 @@ $('saveBtn').addEventListener('click', async () => {
       // Assign the number up front and store it on the document, so it stays
       // fixed for the life of the invoice even if earlier ones are deleted.
       const list = window.authUtils.getCalculations ? await window.authUtils.getCalculations() : [];
-      data.invoiceNo = nextInvoiceNo(list);
+      data.invoiceNo = nextInvoiceNo(list, state.txnMode);
       await window.authUtils.saveCalculation(data);
       buildInvoice(r, data.invoiceNo);
       showToast(t('savedToHistory'));
@@ -705,11 +843,18 @@ function invTsToDate(ts) { return ts ? (ts.toDate ? ts.toDate() : new Date(ts)) 
 // highest sequence already used today, and add one. Documents saved before
 // this change have no invoiceNo, so they're counted by their timestamp
 // instead and keep their old position in the day.
-function nextInvoiceNo(list) {
+// Sales and purchases run SEPARATE daily sequences, so only invoices of the
+// same mode are counted. The same number can therefore appear once as a sale
+// and once as a purchase; the stored txnMode is what tells them apart.
+function nextInvoiceNo(list, mode) {
   const today = invDayKey(new Date());
-  let highestStored = 0;   // biggest sequence already issued today
+  const want = (mode === 'purchase') ? 'purchase' : 'sale';
+  let highestStored = 0;   // biggest sequence already issued today in this mode
   let legacyToday = 0;     // pre-change docs from today that have no number
   (list || []).forEach(c => {
+    // Documents saved before Purchase mode existed were all sales.
+    const m = (c.txnMode === 'purchase') ? 'purchase' : 'sale';
+    if (m !== want) return;
     const s = c.invoiceNo ? String(c.invoiceNo) : '';
     if (s.slice(0, 6) === today) {
       highestStored = Math.max(highestStored, parseInt(s.slice(6), 10) || 0);
@@ -727,6 +872,9 @@ function buildInvoice(r, invNo) {
   invDate.textContent = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   $('invNumber').textContent = invNo ? ('#' + invNo) : '';
 
+  const receiptLabel = $('invReceiptLabel');
+  if (receiptLabel) receiptLabel.textContent = isPurchase() ? t('purchaseReceipt') : t('salesReceipt');
+
   const sections = [];
   const money = (n) => fmt(n) + ' ' + t('mmk');
 
@@ -741,7 +889,7 @@ function buildInvoice(r, invNo) {
   const weightRows = [
     [t('itemWeight'), formatWeightCompact(iwK.value, iwP.value, iwY.value)],
   ];
-  if (parseNum(lwK.value) || parseNum(lwP.value) || parseNum(lwY.value)) {
+  if (!isPurchase() && (parseNum(lwK.value) || parseNum(lwP.value) || parseNum(lwY.value))) {
     weightRows.push([t('lossWeight'), formatWeightCompact(lwK.value, lwP.value, lwY.value)]);
   }
   if (itemType.value === 'gold-gem') {
@@ -770,7 +918,7 @@ function buildInvoice(r, invNo) {
   if (itemType.value === 'gold-gem') {
     const gemRows = [[t('gemWeight'), localizeNum(r.gemYt.toFixed(2)) + ' ' + t('unitYt')]];
     if (costMode !== 'fixed') {
-      gemRows.push([t('gemPrice'), fmt(state.gemPrice) + ' ' + t('mmk') + ' ' + t('perYt')]);
+      gemRows.push([t('gemPrice'), fmt(book().gemPrice) + ' ' + t('mmk') + ' ' + t('perYt')]);
     }
     gemRows.push([t('gemCost'), money(r.gemCost)]);
     sections.push({ label: t('secGem'), rows: gemRows });
@@ -785,11 +933,13 @@ function buildInvoice(r, invNo) {
     sections.push({ label: t('secDiamond'), rows: dRows });
   }
 
-  // FEES
-  sections.push({
-    label: t('secFees'),
-    rows: [[t('craftingFee'), money(r.craftingFee)]],
-  });
+  // FEES — a purchase has none, so the section is omitted rather than shown as 0.
+  if (!isPurchase()) {
+    sections.push({
+      label: t('secFees'),
+      rows: [[t('craftingFee'), money(r.craftingFee)]],
+    });
+  }
 
   invoiceBody.innerHTML = sections.map(sec => {
     const rowsHtml = sec.rows.map(([k, v]) =>
@@ -962,6 +1112,7 @@ requestAnimationFrame(tickOrbs);
 
 // ---------- Init ----------
 loadState();
+applyTxnMode();
 toggleRowsForItemType();
 loadLanguage();
 
@@ -988,6 +1139,8 @@ function showToast(msg) {
 function buildCalculationData() {
   const r = calculate();
   const data = {
+    // Which side of the counter. Documents without it are pre-feature sales.
+    txnMode: state.txnMode,
     itemNameValue: (typeof itemNameValue !== 'undefined') ? itemNameValue : '',
     specificItemValue: specificItem ? specificItem.value.trim() : '',
     itemName: (function () {
@@ -1018,7 +1171,7 @@ function buildCalculationData() {
     data.gemWeightK = parseNum(gwK.value);
     data.gemWeightP = parseNum(gwP.value);
     data.gemWeightY = parseNum(gwY.value);
-    data.gemPrice   = state.gemPrice;
+    data.gemPrice   = book().gemPrice;
     data.gemCost    = r.gemCost;
     data.gemCostFixed = parseNum(gemCostInput.value);
   }
@@ -1114,20 +1267,20 @@ window.__editingInvoiceNo = window.__editingInvoiceNo || null;
   if (d.itemType) itemType.value = d.itemType;
 
   // quality + reconstruct the 16K base price from the saved per-K price
+  // Restore the mode BEFORE any pricing, so the rates below land in the
+  // right book and the invoice keeps its own numbering sequence.
+  state.txnMode = (d.txnMode === 'purchase') ? 'purchase' : 'sale';
+  applyTxnMode();
+
   const qMap = { '16K': 0, '15K': 1, '14.5K': 2, '14K': 3, '12K': 4 };
   const qIdx = (qMap[d.goldPurity] != null) ? qMap[d.goldPurity] : 0;
   state.qualityIndex = qIdx;
+  // Rebuild the 16K rate this invoice was priced at, from the rate stored
+  // on it, so re-saving cannot silently reprice it at today's numbers.
   const pk = Number(d.goldPricePerK) || 0;
-  let base = pk;
-  switch (qIdx) {
-    case 1: base = pk * 17 / 16; break;
-    case 2: base = pk * 140 / 128; break;
-    case 3: base = pk * 18 / 16; break;
-    case 4: base = pk * 20 / 16; break;
-    default: base = pk;
-  }
-  state.goldPrice16K = base;
-  if (d.gemPrice != null) state.gemPrice = Number(d.gemPrice) || 0;
+  book().goldPrice16K = baseFromQuality(pk, qIdx);
+  if (d.gemPrice != null) book().gemPrice = Number(d.gemPrice) || 0;
+  if (d.diamondPrice != null) book().diamondPrice = Number(d.diamondPrice) || 0;
 
   const setNum = (el, v) => { if (el) el.value = Number(v) ? String(Number(v)) : ''; };
   const setMoney = (el, v) => { if (el) el.value = Number(v) ? Number(v).toLocaleString('en-US') : ''; };
@@ -1136,7 +1289,6 @@ window.__editingInvoiceNo = window.__editingInvoiceNo || null;
   setNum(lwK, d.lossWeightK); setNum(lwP, d.lossWeightP); setNum(lwY, d.lossWeightY);
   setNum(gwK, d.gemWeightK); setNum(gwP, d.gemWeightP); setNum(gwY, d.gemWeightY);
   setNum(diamondWeight, d.diamondWeight);
-  setMoney(diamondPrice, d.diamondPrice);
   setMoney(craftingFee, d.craftingFee);
 
   costMode = (d.costMode === 'fixed') ? 'fixed' : 'calculate';

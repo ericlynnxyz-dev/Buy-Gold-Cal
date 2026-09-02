@@ -1325,6 +1325,97 @@ body.lang-mm .opt-item { font-size: 17px; }
   transform: translateX(-50%) translateY(0);
 }
 
+/* ============ PURCHASE / SALE TOGGLE (hero) ============ */
+.txn-mode-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  border: 1px solid var(--pill-glass-border);
+  background: var(--pill-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.txn-mode-btn {
+  min-width: 104px;
+  height: 36px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--hero-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: background 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+}
+.txn-mode-btn:active { transform: scale(0.97); }
+.txn-mode-btn.active {
+  background: linear-gradient(135deg, var(--gold-1), var(--gold-2));
+  color: #fff;
+  opacity: 1;
+  box-shadow: var(--shadow-gold);
+}
+
+/* Sale/Purchase badge in history and compare. Numbers repeat across the two
+   sequences, so the badge is what tells 0209260001 apart from 0209260001. */
+.txn-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  vertical-align: middle;
+}
+.txn-badge.sell { background: rgba(232, 150, 31, 0.16); color: #b26a08; }
+.txn-badge.buy  { background: rgba(56, 142, 60, 0.16);  color: #2e7d32; }
+.theme-dark .txn-badge.sell { background: rgba(245, 178, 52, 0.20); color: #f5b234; }
+.theme-dark .txn-badge.buy  { background: rgba(129, 199, 132, 0.20); color: #81c784; }
+body.lang-mm .txn-badge { font-size: 12px; }
+
+/* ============ PRICING SECTIONS ============ */
+.pricing-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+/* Gold price input paired with the purity it was quoted at. */
+.price-with-purity {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.price-with-purity .single-input { flex: 1; min-width: 0; }
+.purity-select {
+  flex: 0 0 auto;
+  height: 44px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.purity-select:focus {
+  outline: none;
+  border-color: var(--gold-1);
+  background: var(--input-bg-focus);
+}
+
 /* ============ MYANMAR LANGUAGE — bigger + clearer ============ */
 
 /* Myanmar is a complex script: a consonant plus its medials and vowel signs
