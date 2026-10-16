@@ -798,7 +798,18 @@ $('saveBtn').addEventListener('click', async () => {
       // Assign the number up front and store it on the document, so it stays
       // fixed for the life of the invoice even if earlier ones are deleted.
       const list = window.authUtils.getCalculations ? await window.authUtils.getCalculations() : [];
-      data.invoiceNo = nextInvoiceNo(list, state.txnMode);
+      // Draw from the daily counter shared with the Print Invoice page, so a
+      // printed invoice and a saved calculation can never get the same
+      // number. If the counter is unavailable (e.g. Firestore rules not yet
+      // deployed) fall back to the number worked out from the saved list.
+      const fallbackNo = nextInvoiceNo(list, state.txnMode);
+      data.invoiceNo = fallbackNo;
+      if (window.authUtils.claimInvoiceNumber) {
+        try {
+          const usedSeq = (parseInt(fallbackNo.slice(6), 10) || 1) - 1;
+          data.invoiceNo = await window.authUtils.claimInvoiceNumber(state.txnMode, usedSeq);
+        } catch (e) { /* keep fallbackNo */ }
+      }
       await window.authUtils.saveCalculation(data);
       buildInvoice(r, data.invoiceNo);
       showToast(t('savedToHistory'));

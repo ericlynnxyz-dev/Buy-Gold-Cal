@@ -52,12 +52,14 @@
       </div>
       <p class="inv-hint" id="savedHint" hidden data-i18n="noSavedForMode">No saved calculations for this mode.</p>
 
-      <!-- Pre-filled with the next free number in this mode's daily sequence,
-           and editable, since nothing is written back to history from here. -->
+      <!-- Assigned when the invoice is issued (first export or print), from the
+           daily counter shared with the calculator. Read-only so two invoices
+           can never be given the same number by hand. -->
       <div class="field field-horizontal">
         <label for="invNoInput" data-i18n="invoiceNoLabel">Invoice No.</label>
-        <div class="single-input"><input type="text" id="invNoInput" maxlength="20" /></div>
+        <div class="single-input"><input type="text" id="invNoInput" readonly tabindex="-1" /></div>
       </div>
+      <p class="inv-hint" data-i18n="invNoHint">Assigned when the invoice is exported or printed.</p>
     </section>
 
     <!-- Customer: always typed in, in both modes -->
@@ -65,7 +67,8 @@
       <div class="pricing-section-title" data-i18n="customerHeading">CUSTOMER</div>
       <div class="field field-horizontal">
         <label for="custName" data-i18n="custName">Customer Name</label>
-        <div class="single-input"><input type="text" id="custName" maxlength="60" /></div>
+        <div class="single-input"><input type="text" id="custName" maxlength="60" list="customerSuggestions" autocomplete="off" /></div>
+        <datalist id="customerSuggestions"></datalist>
       </div>
       <div class="field field-horizontal">
         <label for="custPhone" data-i18n="phoneLabel">Phone number</label>
@@ -196,6 +199,8 @@
           <span data-i18n="printInvoiceBtn">Print Invoice</span>
         </button>
       </div>
+      <!-- Why an export/print was refused (incomplete invoice, not signed in…) -->
+      <p class="warn-msg" id="invoiceMessage" hidden role="alert"></p>
     </section>
   </div>
 

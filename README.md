@@ -97,6 +97,7 @@ rules are not applied and every user's invoices are readable.
 | `i18n.js` | Shared EN/MM dictionary — single source of truth |
 | `auth-utils.js` | Firebase auth and Firestore helpers |
 | `firebase-config.js` | Firebase project config |
+| `invoice.html` / `invoice.js` | Print Invoice page — issue, print, export PDF |
 | `firestore.rules` | Firestore security rules |
 
 Styles are split across `styles.css` (shared), `auth.css` and `profile.css`.
@@ -105,9 +106,19 @@ Styles are split across `styles.css` (shared), `auth.css` and `profile.css`.
 
 ## Notes
 
-- Invoice numbers are `DDMMYY` + a 4-digit per-day sequence, assigned at save
-  time and **stored on the document**. They must not be re-derived from list
-  position, or deleting one invoice would renumber every later one.
+- Invoice numbers are `DDMMYY` + a 4-digit per-day sequence, with **separate
+  sequences for sales and purchases**. They are assigned once and **stored on
+  the document** — never re-derived from list position, or deleting one
+  invoice would renumber every later one.
+- Numbers come from a daily counter in Firestore
+  (`users/{uid}/invoiceCounters/{DDMMYY}-{sale|purchase}`), claimed in a
+  transaction and shared by the calculator and the Print Invoice page, so the
+  two can never hand out the same number — even across devices.
+- The Print Invoice page **issues** an invoice the first time it is exported
+  or printed: it is validated, numbered, and recorded in
+  `users/{uid}/invoices` with the customer's details. Re-printing unchanged
+  content does not issue a second one. Issuing requires sign-in.
+- An invoice printed from a saved calculation keeps that calculation's number.
 - `i18n.js` is the only place translations belong. Both language blocks must
   hold the same keys.
 - Fonts, the 7-segment display face and `html2canvas` load from CDNs, so image

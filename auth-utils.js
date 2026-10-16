@@ -23,7 +23,8 @@ import {
   doc,
   query,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ---------- Auth state ----------
@@ -83,6 +84,51 @@ export async function updateCalculation(id, data) {
   return updateDoc(doc(db, 'users', user.uid, 'calculations', id), data);
 }
 
+// ---------- Firestore: invoice numbers + issued invoices ----------
+// One daily counter per mode (sale / purchase), shared by the calculator and
+// the Print Invoice page, so the two can never hand out the same number.
+// The transaction makes it safe across devices.
+//
+// `usedSeq` is the highest sequence already present today in this mode,
+// worked out by the caller from the documents it has loaded. It only matters
+// before the counter exists — on the first claim of a day, or for records
+// saved before the counter was introduced.
+function invDateKey(d) {
+  return String(d.getDate()).padStart(2, '0') +
+         String(d.getMonth() + 1).padStart(2, '0') +
+         String(d.getFullYear()).slice(-2);
+}
+export async function claimInvoiceNumber(mode, usedSeq = 0) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not signed in');
+  const m = (mode === 'purchase') ? 'purchase' : 'sale';
+  const dateKey = invDateKey(new Date());
+  const counterRef = doc(db, 'users', user.uid, 'invoiceCounters', dateKey + '-' + m);
+  return runTransaction(db, async (tx) => {
+    const snap = await tx.get(counterRef);
+    const current = snap.exists() ? Number(snap.data().sequence) || 0 : 0;
+    const sequence = Math.max(current, Number(usedSeq) || 0) + 1;
+    tx.set(counterRef, { sequence, updatedAt: serverTimestamp() });
+    return dateKey + String(sequence).padStart(4, '0');
+  });
+}
+
+function userInvoiceCollection() {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not signed in');
+  return collection(db, 'users', user.uid, 'invoices');
+}
+// An invoice that was actually printed or exported, kept as a record.
+export async function saveIssuedInvoice(data) {
+  const ref = await addDoc(userInvoiceCollection(), { ...data, timestamp: serverTimestamp() });
+  return { id: ref.id };
+}
+export async function getIssuedInvoices() {
+  const q = query(userInvoiceCollection(), orderBy('timestamp', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
 // ---------- Pending calculation (handed off via sessionStorage) ----------
 export function setPendingCalculation(data) {
   try { sessionStorage.setItem('pendingCalculation', JSON.stringify(data)); } catch (e) {}
@@ -130,6 +176,9 @@ export function userAvatarUrl(user) {
 
 // ---------- Expose to non-module scripts (app.js) ----------
 window.authUtils = {
+  claimInvoiceNumber,
+  saveIssuedInvoice,
+  getIssuedInvoices,
   onAuthStateChange,
   getCurrentUser,
   signOutUser,

@@ -9,7 +9,7 @@
 // roll rather than a fixed page — so nothing is ever clipped.
 // ============================================================
 import { tr, getLang, setLang, applyLangClass, translateStatic, QUALITY_KEYS, TYPE_KEY } from './i18n.js';
-import { onAuthStateChange, getCalculations } from './auth-utils.js';
+import { onAuthStateChange, getCalculations, claimInvoiceNumber, saveIssuedInvoice, getIssuedInvoices } from './auth-utils.js';
 
 const $ = (id) => document.getElementById(id);
 const t = tr;
@@ -48,8 +48,13 @@ let txnMode = 'sale';       // 'sale' | 'purchase'
 let source  = 'manual';     // 'manual' | 'saved'
 let calcs   = [];           // saved calculations for the signed-in user
 let pickedInvoiceNo = '';   // number carried over from a chosen saved calculation
+let pickedCalcId = '';      // and that calculation's id
 let totalEdited = false;    // has the user typed their own total?
 let savedDiverged = false;  // saved figures loaded, then a weight/price changed
+let activeUser = null;      // issuing needs an account
+let issued = [];            // invoices already issued (printed / exported)
+let issuedRecord = null;    // the invoice issued from what is on screen now
+let invoiceDirty = true;    // anything changed since that invoice was issued?
 
 // ---------- inputs ----------
 const F = {
@@ -108,27 +113,56 @@ function updateDivergeNote() {
 }
 
 // ---------- invoice number ----------
-// Same shape as the calculator's: DDMMYY + a 4-digit sequence, counted
-// within this mode only. Nothing here is written back to history, so the
-// figure is a suggestion the user can overwrite.
+// An invoice gets its number when it is ISSUED — that is, the first time it
+// is exported or printed — never before. Until then the paper reads DRAFT.
+//
+// Manual invoices draw from the same per-mode daily counter the calculator
+// uses, so the two can never collide. Invoices made from a saved calculation
+// keep that calculation's number: it is the same sale or purchase.
 function invDayKey(d) {
   return String(d.getDate()).padStart(2, '0') +
          String(d.getMonth() + 1).padStart(2, '0') +
          String(d.getFullYear()).slice(-2);
 }
-function nextInvoiceNo() {
+const tsDate = (ts) => ts ? (ts.toDate ? ts.toDate() : new Date(ts)) : new Date();
+
+// Highest sequence already used today in this mode, across saved
+// calculations and issued invoices. Only matters before the day's counter
+// exists; after that the counter is authoritative.
+function usedSeqToday() {
   const today = invDayKey(new Date());
   let highest = 0, legacy = 0;
-  matchingCalcs().forEach(c => {
+  const sameMode = (r) => ((r.txnMode === 'purchase') ? 'purchase' : 'sale') === txnMode;
+  calcs.filter(sameMode).forEach(c => {
     const str = c.invoiceNo ? String(c.invoiceNo) : '';
-    if (str.slice(0, 6) === today) {
-      highest = Math.max(highest, parseInt(str.slice(6), 10) || 0);
-    } else if (!str) {
-      const d = c.timestamp ? (c.timestamp.toDate ? c.timestamp.toDate() : new Date(c.timestamp)) : new Date();
-      if (invDayKey(d) === today) legacy += 1;
-    }
+    if (str.slice(0, 6) === today) highest = Math.max(highest, parseInt(str.slice(6), 10) || 0);
+    else if (!str && invDayKey(tsDate(c.timestamp)) === today) legacy += 1;
   });
-  return today + String(Math.max(highest, legacy) + 1).padStart(4, '0');
+  issued.filter(sameMode).forEach(r => {
+    const str = r.invoiceNumber ? String(r.invoiceNumber) : '';
+    if (str.slice(0, 6) === today) highest = Math.max(highest, parseInt(str.slice(6), 10) || 0);
+  });
+  return Math.max(highest, legacy);
+}
+
+// What the number field and the paper show right now.
+function shownNumber() {
+  if (issuedRecord && !invoiceDirty) return issuedRecord.invoiceNumber;
+  if (source === 'saved' && pickedInvoiceNo) return pickedInvoiceNo;
+  return '';
+}
+
+// Any edit after issuing means the next export/print issues a fresh invoice.
+function markDirty() {
+  invoiceDirty = true;
+  showMessage('');
+}
+
+function showMessage(msg) {
+  const el = $('invoiceMessage');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.hidden = !msg;
 }
 
 // ---------- the printed invoice ----------
@@ -136,8 +170,9 @@ function renderPaper() {
   const purchase = (txnMode === 'purchase');
   $('piKind').textContent = purchase ? t('purchaseInvoice') : t('salesInvoice');
   $('piDate').textContent = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  const no = F.invNo.value.trim();
-  $('piNumber').textContent = no ? '#' + no : '';
+  const no = shownNumber();
+  F.invNo.value = no || t('invDraft');
+  $('piNumber').textContent = no ? '#' + no : t('invDraft');
   $('piTotalLabel').textContent = t('totalCost');
 
   const rows = [];
@@ -231,7 +266,8 @@ function applySaved(idx) {
   totalEdited = true;
   savedDiverged = false;
   pickedInvoiceNo = c.invoiceNo ? String(c.invoiceNo) : '';
-  F.invNo.value = pickedInvoiceNo || nextInvoiceNo();
+  pickedCalcId = c.id || '';
+  markDirty();
   applyVisibility();
   updateDivergeNote();   // a freshly loaded record is by definition not diverged
   renderPaper();
@@ -243,7 +279,8 @@ document.querySelectorAll('.txn-mode-btn').forEach(btn => {
     txnMode = (btn.dataset.txn === 'purchase') ? 'purchase' : 'sale';
     pickedInvoiceNo = '';
     savedDiverged = false;
-    if (source === 'saved') fillSavedPicker(); else F.invNo.value = nextInvoiceNo();
+    markDirty();
+    if (source === 'saved') fillSavedPicker();
     applyVisibility();
     refreshTotal();
   });
@@ -252,7 +289,8 @@ document.querySelectorAll('.cost-mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     source = (btn.dataset.src === 'saved') ? 'saved' : 'manual';
     if (source === 'saved') { fillSavedPicker(); }
-    else { pickedInvoiceNo = ''; totalEdited = false; savedDiverged = false; F.invNo.value = nextInvoiceNo(); }
+    else { pickedInvoiceNo = ''; totalEdited = false; savedDiverged = false; }
+    markDirty();
     applyVisibility();
     refreshTotal();
   });
@@ -260,7 +298,7 @@ document.querySelectorAll('.cost-mode-btn').forEach(btn => {
 $('savedPick').addEventListener('change', (e) => applySaved(Number(e.target.value)));
 
 // Editing any figure that feeds the total marks a loaded record as diverged.
-const markDiverged = () => { if (source === 'saved') savedDiverged = true; };
+const markDiverged = () => { markDirty(); if (source === 'saved') savedDiverged = true; };
 F.type.addEventListener('change', () => { markDiverged(); applyVisibility(); refreshTotal(); });
 [F.iwK, F.iwP, F.iwY, F.lwK, F.lwP, F.lwY, F.gwK, F.gwP, F.gwY, F.dia, F.gold, F.purity]
   .forEach(el => el.addEventListener('input', () => { markDiverged(); refreshTotal(); }));
@@ -269,10 +307,128 @@ F.purity.addEventListener('change', () => { markDiverged(); refreshTotal(); });
 // Clearing the field hands control back to the automatic figure at once —
 // re-rendering alone left it stubbornly blank until some other input fired.
 F.total.addEventListener('input', () => {
+  markDirty();
   totalEdited = F.total.value.trim() !== '';
   if (totalEdited) renderPaper(); else refreshTotal();
 });
-[F.name, F.cName, F.cPhone, F.cAddress, F.invNo].forEach(el => el.addEventListener('input', renderPaper));
+[F.name, F.cName, F.cPhone, F.cAddress].forEach(el => el.addEventListener('input', () => { markDirty(); renderPaper(); }));
+
+// ---------- validation ----------
+// An invoice that goes out to a customer must be complete. Returns the first
+// problem found, or '' when it is ready to issue.
+function validateInvoice() {
+  const purchase = (txnMode === 'purchase');
+  const groups = [[[F.iwK, F.iwP, F.iwY], t('itemWeight')]];
+  if (!purchase) groups.push([[F.lwK, F.lwP, F.lwY], t('lossWeight')]);
+  if (F.type.value === 'gold-gem') groups.push([[F.gwK, F.gwP, F.gwY], t('gemWeight')]);
+  for (const [els, label] of groups) {
+    const v = els.map(el => el.value.trim() === '' ? 0 : Number(el.value.replace(/,/g, '')));
+    if (v.some(n => !Number.isFinite(n) || n < 0)) return t('vNonNeg').replace('{x}', label);
+    // 1 K = 16 P and 1 P = 8 Y, so a P of 16 or a Y of 8 belongs in the next unit.
+    if (v[1] >= 16 || v[2] >= 8) return t('vPYRange').replace('{x}', label);
+  }
+  const itemK = toKyat(F.iwK.value, F.iwP.value, F.iwY.value);
+  const lossK = purchase ? 0 : toKyat(F.lwK.value, F.lwP.value, F.lwY.value);
+  if (itemK <= 0) return t('vItemWeight');
+  let stoneK = 0;
+  if (F.type.value === 'gold-gem') stoneK = toKyat(F.gwK.value, F.gwP.value, F.gwY.value);
+  if (F.type.value === 'gold-diamond') {
+    const d = F.dia.value.trim() === '' ? 0 : Number(F.dia.value.replace(/,/g, ''));
+    if (!Number.isFinite(d) || d < 0) return t('vNonNeg').replace('{x}', t('diamondWeight'));
+    stoneK = diamondToKyat(d);
+  }
+  if (stoneK > itemK + lossK) return t('vStoneHeavy');
+  if (!F.name.value.trim()) return t('vItemName');
+  if (!(parseNum(F.gold.value) > 0)) return t('vGoldPrice');
+  if (!(parseNum(F.total.value) > 0)) return t('vTotal');
+  if (!F.cName.value.trim() || !F.cPhone.value.trim() || !F.cAddress.value.trim()) return t('vCustomer');
+  return '';
+}
+
+// ---------- issuing ----------
+function buildIssuedInvoice(invoiceNumber) {
+  const purchase = (txnMode === 'purchase');
+  const data = {
+    txnMode, source,
+    sourceCalcId: (source === 'saved' && pickedCalcId) ? pickedCalcId : '',
+    invoiceNumber,
+    itemName: F.name.value.trim(),
+    itemType: F.type.value,
+    weightK: parseNum(F.iwK.value), weightP: parseNum(F.iwP.value), weightY: parseNum(F.iwY.value),
+    lossWeightK: purchase ? 0 : parseNum(F.lwK.value),
+    lossWeightP: purchase ? 0 : parseNum(F.lwP.value),
+    lossWeightY: purchase ? 0 : parseNum(F.lwY.value),
+    goldPurity: PURITY_NAME[Number(F.purity.value) || 0],
+    goldPrice: parseNum(F.gold.value),
+    totalCost: parseNum(F.total.value),
+    customer: { name: F.cName.value.trim(), phone: F.cPhone.value.trim(), address: F.cAddress.value.trim() },
+  };
+  if (F.type.value === 'gold-gem') {
+    data.gemWeightK = parseNum(F.gwK.value); data.gemWeightP = parseNum(F.gwP.value); data.gemWeightY = parseNum(F.gwY.value);
+  }
+  if (F.type.value === 'gold-diamond') data.diamondWeight = parseNum(F.dia.value);
+  return data;
+}
+
+// Make sure what is on screen has been issued, issuing it if needed. Returns
+// true when it is safe to export or print. Re-printing unchanged content
+// does not issue a second invoice.
+let issuing = false;
+async function ensureIssued() {
+  const problem = validateInvoice();
+  if (problem) { showMessage(problem); return false; }
+  if (!activeUser) { showMessage(t('errSignInToIssue')); return false; }
+  if (issuedRecord && !invoiceDirty) return true;
+  if (issuing) return false;
+  issuing = true;
+  try {
+    const number = (source === 'saved' && pickedInvoiceNo)
+      ? pickedInvoiceNo
+      : await claimInvoiceNumber(txnMode, usedSeqToday());
+    const data = buildIssuedInvoice(number);
+    const res = await saveIssuedInvoice(data);
+    issuedRecord = { id: res.id, ...data, timestamp: new Date() };
+    issued.unshift(issuedRecord);
+    invoiceDirty = false;
+    showMessage('');
+    updateCustomerSuggestions();
+    renderPaper();
+    return true;
+  } catch (e) {
+    showMessage(t('couldNotIssue') + ((e && e.message) || e));
+    return false;
+  } finally {
+    issuing = false;
+  }
+}
+
+// ---------- returning customers ----------
+// Typing a name that has been invoiced before offers it, and choosing it
+// fills in the phone and address from the most recent invoice to them.
+function updateCustomerSuggestions() {
+  const list = $('customerSuggestions');
+  if (!list) return;
+  const q = F.cName.value.trim().toLowerCase();
+  const seen = new Map();
+  issued.forEach(r => {
+    const c = r.customer || {};
+    const key = (c.name || '').toLowerCase();
+    if (key && key.startsWith(q) && !seen.has(key)) seen.set(key, c);
+  });
+  list.innerHTML = Array.from(seen.values()).slice(0, 8)
+    .map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.phone || '')}</option>`).join('');
+}
+function fillReturningCustomer() {
+  const key = F.cName.value.trim().toLowerCase();
+  const hit = issued.find(r => r.customer && (r.customer.name || '').toLowerCase() === key);
+  if (!hit) return;
+  F.cPhone.value = hit.customer.phone || '';
+  F.cAddress.value = hit.customer.address || '';
+  markDirty();
+  renderPaper();
+}
+F.cName.addEventListener('input', updateCustomerSuggestions);
+F.cName.addEventListener('change', fillReturningCustomer);
 
 // ---------- export / print ----------
 // The paper is measured, not assumed: height comes from the rendered node so
@@ -286,12 +442,13 @@ $('exportBtn').addEventListener('click', async () => {
   const btn = $('exportBtn');
   btn.disabled = true;
   try {
+    if (!await ensureIssued()) return;
     const canvas = await paperCanvas();
     const hIn = PAPER_W_IN * (canvas.height / canvas.width);
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: 'in', format: [PAPER_W_IN, hIn], orientation: 'portrait' });
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, PAPER_W_IN, hIn);
-    const name = 'invoice-' + (F.invNo.value.trim() || new Date().toISOString().slice(0, 10)) + '.pdf';
+    const name = txnMode + '-invoice-' + shownNumber() + '.pdf';
 
     // Offer the native share sheet when the device has one, so the PDF can go
     // straight to a chat or mail app; otherwise fall back to a download.
@@ -315,7 +472,8 @@ $('exportBtn').addEventListener('click', async () => {
 
 // Printing uses the browser's own dialog. A print stylesheet hides the app
 // chrome and sets the page to 2in wide with automatic length.
-$('printBtn').addEventListener('click', () => {
+$('printBtn').addEventListener('click', async () => {
+  if (!await ensureIssued()) return;
   document.body.classList.add('printing');
   const done = () => {
     document.body.classList.remove('printing');
@@ -360,19 +518,22 @@ $('navInvoice').addEventListener('click', () => {});
 // ---------- start ----------
 applyLanguage(getLang());
 applyVisibility();
-F.invNo.value = nextInvoiceNo();
 refreshTotal();
 
 // Saved calculations need an account; without one the page still works by hand.
 onAuthStateChange(async (user) => {
-  if (!user) { calcs = []; applyVisibility(); return; }
+  activeUser = user || null;
+  if (!user) { calcs = []; issued = []; applyVisibility(); renderPaper(); return; }
   try {
-    calcs = await getCalculations();
+    [calcs, issued] = await Promise.all([
+      getCalculations(),
+      getIssuedInvoices().catch(() => []),   // e.g. rules not deployed yet
+    ]);
   } catch (e) {
     calcs = [];
   }
+  updateCustomerSuggestions();
   if (source === 'saved') fillSavedPicker();
-  else if (!F.invNo.value.trim()) F.invNo.value = nextInvoiceNo();
   applyVisibility();
   renderPaper();
 });
